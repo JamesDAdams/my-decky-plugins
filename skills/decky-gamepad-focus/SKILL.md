@@ -28,7 +28,31 @@ D-pad can be reproduced; guessing cost hours.
 - The node's tree is found through the plugin context (`SharedJSContext`, the 1×1 window); the DOM it
   points at belongs to the visible `Steam Big Picture Mode` window.
 
-## 2. Why a plugin control usually is not reachable
+## 2. Every surface, one rule
+
+Whatever the plugin draws, the same three questions decide whether a controller can use it:
+
+1. **Is the control a `Focusable`** (or a clone carrying an adopted node)? A plain `<button>`, a `div`
+   with `onClick`, a `<span role="button">`: DOM-focusable at best, **not a navigation node** — the pad
+   never lands on it.
+2. **Is its parent group laid out correctly?** Steam reads the parent's `GetLayout()`: a row of
+   buttons inside a vertical container only moves up/down. Wrap each row in a `Focusable` with an
+   explicit `flexDirection` (`row` for a footer/tab strip, `column` for a list).
+3. **Can you see the focus?** `noFocusRing` + a custom style = invisible selection. Either drop
+   `noFocusRing` or paint `:focus` yourself (`background:#e6e8ea; color:#16191d`).
+
+Surface by surface:
+
+| Surface | What to do | What goes wrong otherwise |
+| --- | --- | --- |
+| Game page row (48×48 icon) | clone a native icon of the row, `adopt()` its node, `vgp_onok` listener, `:focus` painting, `fill` forced dark (§4) | node under the page container; invisible glyph on white |
+| Full-page route (`routerHook.addRoute`) | build the page out of `Focusable`s; give the page at least one control, and `autoFocus` the first one | nothing focusable → the pad does nothing (only B works) |
+| QAM panel (`content:`) | `Focusable` per control, `autoFocus` on the tab or the first button: **measured**, after selecting the plugin entry the panel opened with `m_lastFocusNode = null` until a control carried `autoFocus` | focus lost on open, the panel feels dead |
+| Modal dialog (`showModal`) | footer = horizontal `Focusable`, one `Focusable` per button, `:focus` painted (§7) | only up/down moves, selection invisible |
+| Injected DOM (icon row of another window, top bar, overlay) | the injected code has no `SteamUIStore`: the plugin context must adopt the node from a native neighbour and wire `vgp_onok` | mouse-only control (still open in `topBar.ts`: the status badge and the compile overlay's Cancel) |
+| Left rail entry | the page object renders without a node → `adopt(item, nodeFor(downloads).m_Parent, nodeFor(downloads))`, then run the walk in the rail tree | entry visible, unreachable |
+
+## 3. Why a plugin control usually is not reachable
 
 | Cause | Symptom | Fix |
 | --- | --- | --- |
@@ -43,7 +67,7 @@ D-pad can be reproduced; guessing cost hours.
 `adopt()` in `plugins/scskiller/src/navAdopt.ts` (and the `steamswitch` copy) implements all of this.
 Use it; do not hand-roll a node.
 
-## 3. The one mistake that breaks everything
+## 4. The one mistake that breaks everything
 
 Writing a plain `false` into `m_Focused` / `m_FocusWithin`:
 
@@ -163,7 +187,21 @@ That is the difference between "it works" and "it works and you can see it".
 
 A screenshot is not a proof of reachability; a walk is.
 
-## 9. Checklist before shipping a control
+## 9. Definition of done (every surface, every time)
+
+A surface is done when all of these are true — not when it compiles, and not when it looks right:
+
+- [ ] every control is a `Focusable` (or a clone with an adopted node); no `<button>`/`<div onClick>` left
+- [ ] each row/column of controls sits in a `Focusable` group with an explicit `flexDirection`
+- [ ] the focused state is visible (own `:focus` style, glyph colour forced) — check it on a screenshot
+- [ ] on a surface that opens (QAM tab, page, dialog): something takes the focus, `autoFocus` if needed
+- [ ] `vgp_onok` wired for anything that is not a real `Focusable`
+- [ ] the walk has been replayed with `pad-sim.mjs` on **that** surface, including one `ok` on each
+      action, and the output is pasted in the commit/summary
+- [ ] the log shows `focus: ...` lines for the surface during the walk
+- [ ] anything still mouse-only is written down (file + line) instead of being quietly shipped
+
+## 10. Checklist before shipping a control
 
 - [ ] element inside the native row (not a fixed overlay outside it)
 - [ ] node adopted from a sibling of the same row, `GetFocusable()` ≠ `none`, focus stores are objects

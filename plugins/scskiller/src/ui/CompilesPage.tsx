@@ -1,7 +1,9 @@
 import { executeInTab } from "@decky/api";
+import { Focusable } from "@decky/ui";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cancelCompile, cancelQueued, clearFinished, getCompiles, getLibrary, pauseCompile, resumeCompile, startQueued, type CompileSnapshot, type LibraryGame } from "../api";
 import { formatDuration } from "../format";
+import { FOCUS_RING } from "./atoms";
 
 /**
  * Full-page SCSKiller view, built with the metrics of Steam's own Downloads page (measured
@@ -66,26 +68,53 @@ function Section({ title, count, caption, action }: { title: string; count: numb
   );
 }
 
-/** Steam's secondary button (same box as "Clear All" on the downloads page). */
-function PageButton({ label, onClick }: { label: string; onClick: () => void }) {
+/**
+ * Steam's secondary button (same box as "Clear All" on the downloads page).
+ *
+ * It is a `Focusable`, not a `<button>`: a plain button is a DOM focus target but not a navigation
+ * node, so the pad cannot reach it (AGENTS.md rule 11, `decky-gamepad-focus` skill). `noFocusRing`
+ * means the focused look has to be painted here, otherwise the user cannot see the selection.
+ */
+function PageButton({
+  label,
+  onClick,
+  disabled = false,
+  minWidth = 150,
+  fontSize = 16,
+}: {
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  minWidth?: number;
+  fontSize?: number;
+}) {
+  const [focused, setFocused] = useState(false);
+  const look = {
+    minWidth,
+    padding: "11px 20px",
+    borderRadius: 2,
+    background: disabled ? "rgba(255,255,255,0.07)" : focused ? "#e6e8ea" : "rgba(255,255,255,0.16)",
+    color: disabled ? "rgba(255,255,255,0.4)" : focused ? "#16191d" : "#fff",
+    fontSize,
+    fontWeight: 500,
+    cursor: disabled ? "default" : "pointer",
+    flex: "0 0 auto",
+    textAlign: "center" as const,
+    boxShadow: focused ? FOCUS_RING : "none",
+  };
+  // a disabled control must not be focusable at all: render it as plain markup instead
+  if (disabled) return <div style={look}>{label}</div>;
   return (
-    <button
+    <Focusable
+      noFocusRing
+      onActivate={onClick}
       onClick={onClick}
-      style={{
-        minWidth: 150,
-        padding: "11px 20px",
-        borderRadius: 2,
-        border: "none",
-        background: "rgba(255,255,255,0.16)",
-        color: "#fff",
-        fontSize: 16,
-        fontWeight: 500,
-        cursor: "pointer",
-        flex: "0 0 auto",
-      }}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      style={look}
     >
       {label}
-    </button>
+    </Focusable>
   );
 }
 
@@ -210,25 +239,13 @@ export function CompilesPage() {
         </div>
       ) : null}
       {(actions ?? []).map((action) => (
-        <button
+        <PageButton
           key={action.label}
+          label={action.label}
           onClick={action.onClick}
           disabled={action.disabled}
-          style={{
-            minWidth: 96,
-            padding: "11px 18px",
-            borderRadius: 2,
-            border: "none",
-            background: action.disabled ? "rgba(255,255,255,0.07)" : "rgba(255,255,255,0.16)",
-            color: action.disabled ? "rgba(255,255,255,0.4)" : "#fff",
-            fontSize: 16,
-            fontWeight: 500,
-            cursor: action.disabled ? "default" : "pointer",
-            flex: "0 0 auto",
-          }}
-        >
-          {action.label}
-        </button>
+          minWidth={96}
+        />
       ))}
     </div>
   );

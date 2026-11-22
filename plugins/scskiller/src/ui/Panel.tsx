@@ -278,7 +278,7 @@ export function Panel() {
         padding: "0 12px 8px 6px",
       }}
     >
-      <TabStrip tabs={tabs} active={tab} onSelect={setTab} />
+      <TabStrip tabs={tabs} active={tab} onSelect={setTab} autoFocus />
 
       {message ? (
         <div

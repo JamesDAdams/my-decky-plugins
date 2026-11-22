@@ -19,10 +19,13 @@ export function TabStrip({
   tabs,
   active,
   onSelect,
+  autoFocus = false,
 }: {
   tabs: TabDef[];
   active: string;
   onSelect: (id: string) => void;
+  /** Give the selected tab the focus when the strip mounts (a QAM panel opens with nothing focused). */
+  autoFocus?: boolean;
 }) {
   const [focused, setFocused] = useState<string | null>(null);
 
@@ -45,6 +48,7 @@ export function TabStrip({
           <Focusable
             key={tab.id}
             noFocusRing
+            autoFocus={autoFocus && selected}
             onActivate={() => onSelect(tab.id)}
             onClick={() => onSelect(tab.id)}
             onFocus={() => setFocused(tab.id)}

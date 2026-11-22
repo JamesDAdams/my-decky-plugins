@@ -60,6 +60,15 @@ works** on the Steam client (verified through logs and CDP), not just code that 
     node is ignored, and the `pad-sim.mjs` simulator, which reproduces the D-pad (`--from Play right
     right right left left`) so a "the controller cannot reach it" claim is checked in a minute instead
     of being argued about for hours.
+12. **Apply rule 11 to every surface, not just the visible button.** Before declaring a plugin done,
+    walk each surface with `pad-sim.mjs` and fix what the pad cannot reach: game-page controls, the
+    full-page route, the QAM panel (`autoFocus` a control, otherwise the panel opens with
+    `m_lastFocusNode = null` and feels dead), modal dialogs (horizontal `Focusable` footer), injected
+    DOM in another window (it needs an adopted node + `vgp_onok`), the rail entry. A plain
+    `<button>`/`div onClick` is not a navigation node; a `noFocusRing` control without its own
+    `:focus` style is invisible to a couch user. The skill's §9 "definition of done" is the gate.
+    Known open gap (2026-11-22): the top-bar status badge and the compile overlay's Cancel are
+    injected DOM without nodes - they must be adopted like the game-page button.
 
 ## 3. Measured facts (Windows, Steam + Decky 3, November 2026)
 
