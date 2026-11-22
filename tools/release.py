@@ -15,9 +15,9 @@ top-level folder with the loader key (`SCSKiller/...`), so Decky's "Install from
 file" drops it in `homebrew/plugins/SCSKiller`.
 
 Every entry uses forward slashes: Decky's installer cannot extract the backslashes
-that `Compress-Archive` writes. Timestamps are fixed, so the same sources always
-produce the same bytes and an artifact can be compared with the copy committed in
-`releases/`.
+that `Compress-Archive` writes. Timestamps are fixed, so one checkout always packs to
+the same bytes; a CI checkout is not byte-identical to a Windows one (LF vs CRLF in the
+text entries, different zlib build), so compare entry names, not hashes.
 
 Beside `plugin.json`, `package.json`, `main.py`, the READMEs, `LICENSE`, `dist/` and
 `src/`, an archive ships the extra files (runtime helpers) listed in

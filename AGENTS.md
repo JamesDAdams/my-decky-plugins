@@ -238,8 +238,10 @@ Get-Content "$env:USERPROFILE\homebrew\logs\<name>\*.log"        # plugin log
 Zip rule (measured): `Compress-Archive` writes `\` in entry names and Decky's installer fails on that;
 build the install zip with `python tools/release.py package <plugin> --out-dir releases` (or `zipfile`
 with `as_posix()` names) so every entry uses `/`. `release.py` is the only packer: both `build.ps1`
-scripts and the CI release workflow call it, and its fixed timestamps make the same sources produce the
-same bytes, so the zip committed in `releases/` can be compared with the artifact of a release.
+scripts and the CI release workflow call it, and its fixed timestamps keep it stable, but a CI archive
+is **not** byte-identical to a local one - the text entries follow the checkout's line endings and the
+zlib build (measured: 194 488 bytes locally, 194 418 on the runner, same 36 entries) - so compare
+entry names and contents, never hashes.
 
 ## 6. Index
 
@@ -368,9 +370,10 @@ gives each plugin its own GitHub release:
 The plugin list is **discovered**, not configured: any folder under `plugins/` holding `plugin.json`
 and `package.json` is built and released, so adding a plugin needs no workflow change. `tools/release.py`
 is the single source of the names (`list`, `matrix`, `package`, `notes`), and it is also what both
-`build.ps1` scripts call, so the local zip and the release asset have the same bytes. `matrix` prints
-an **object** with an `include` key: `fromJSON` on a bare array fails the matrix expansion and the run
-goes red with only the `plan` job in the job list (measured on the first run of this workflow).
+`build.ps1` scripts call, so the local zip and the release asset carry the same entries under the same
+name. `matrix` prints an **object** with an `include` key: `fromJSON` on a bare array fails the matrix
+expansion and the run goes red with only the `plan` job in the job list (measured on the first run of
+this workflow).
 
 The `publish` job gates the release on the same checks as the local build: `npx tsc --noEmit`,
 `npx rollup -c`, the pure-ASCII check on `dist/index.js` (rule 9) and `python3 -m unittest discover -s
