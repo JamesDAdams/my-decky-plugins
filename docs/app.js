@@ -18,14 +18,25 @@
       'deckyshortcut.f3': 'Nothing is patched in Steam and no file is modified: the legend is cloned at runtime inside the visible Big Picture window.',
       'deckyshortcut.meta': 'Keyboard and mouse; Big Picture only',
       'deckyshortcut.alt': "Ctrl+2 DECKY legend in Steam Big Picture's bottom bar, next to Esc BACK",
-      'scskiller.name': 'Shader precompile',
+      'scskiller.name': 'SCSKiller',
       'scskiller.navDesc': 'Steam Big Picture',
       'scskiller.desc': "Bridges the SCSKiller Windows app into Steam: a shader-compile button on the game page, next to Steam's own icons, and a Quick Access Menu page to start, watch and stop the compile.",
       'scskiller.f1': 'A 48x48 button exactly 8 px left of the controller icon, with the SCSKiller badge and a green or red dot for compiled / to compile. It joins that icon row\'s focus group, so the gamepad reaches it with Left/Right.',
       'scskiller.f2': 'Clicking it opens the numbers SCSKiller reports: shaders, pipelines, cache on disk, estimate, last compile, plus Compile, Stop and Refresh.',
       'scskiller.f3': 'The plugin ships no binary: it calls the scskiller.exe already installed and reads its games.json. The QAM page lists the queue with live progress.',
       'scskiller.meta': 'Windows; SCSKiller installed',
-      'scskiller.alt': 'Steam game page with the SCSKiller button left of the controller icon',
+      'scskiller.s1': "The Quick Access Menu's SCSKiller tab: every game of the library with its Compile button",
+      'scskiller.s2': 'The SCSKiller compile queue in Big Picture: one game compiling, with Pause and Stop',
+      'scskiller.s3': 'A Steam game page while SCSKiller compiles: Pause beside the compile percentage',
+      'scskiller.s4': 'The SCSKiller numbers dialog: shaders, pipelines, cache, estimate, engine, Compile and Close',
+      'scskiller.c1': 'Quick Access Menu: every game, ready to compile',
+      'scskiller.c2': 'The compile queue: in progress, queued, finished',
+      'scskiller.c3': 'On the game page: the compile percentage and Pause',
+      'scskiller.c4': 'The numbers dialog: shaders, pipelines, estimate, engine',
+      'carousel.prev': 'Previous image',
+      'carousel.next': 'Next image',
+      'carousel.images': 'Images',
+      'carousel.image': 'Image',
       'steamswitch.name': 'Switch account & Play',
       'steamswitch.navDesc': 'Steam Big Picture',
       'steamswitch.desc': 'When a game belongs to another Steam account remembered on this PC, Steam shows Borrow. This plugin turns it into Switch account & Play: Steam restarts signed into the owning account and launches the game there.',
@@ -52,14 +63,25 @@
       'deckyshortcut.f3': 'Rien n’est patché dans Steam et aucun fichier n’est modifié : la légende est clonée à l’exécution dans la fenêtre Big Picture visible.',
       'deckyshortcut.meta': 'Clavier et souris ; Big Picture uniquement',
       'deckyshortcut.alt': 'Légende Ctrl+2 DECKY dans la barre du bas de Steam Big Picture, à côté de Esc BACK',
-      'scskiller.name': 'Précompilation de shaders',
+      'scskiller.name': 'SCSKiller',
       'scskiller.navDesc': 'Steam Big Picture',
       'scskiller.desc': 'Relie l’application Windows SCSKiller à Steam : un bouton de compilation des shaders sur la fiche du jeu, à côté des icônes Steam, et une page dans le menu d’accès rapide pour lancer, suivre et arrêter la compilation.',
       'scskiller.f1': 'Un bouton de 48×48 px exactement à 8 px à gauche de l’icône manette, avec le badge SCSKiller et une pastille verte (compilé) ou rouge (à compiler). Il rejoint le groupe de focus de cette rangée : la manette l’atteint avec gauche/droite.',
       'scskiller.f2': 'Un clic ouvre les chiffres que SCSKiller remonte : shaders, pipelines, cache sur disque, estimation, dernière compilation, plus Compile, Stop et Refresh.',
       'scskiller.f3': 'Le plugin n’embarque aucun binaire : il appelle le scskiller.exe déjà installé et lit son games.json. La page du menu d’accès rapide liste la file avec la progression en direct.',
       'scskiller.meta': 'Windows ; SCSKiller installé',
-      'scskiller.alt': 'Fiche de jeu Steam avec le bouton SCSKiller à gauche de l’icône manette',
+      'scskiller.s1': "L'onglet SCSKiller du menu d'accès rapide : tous les jeux de la bibliothèque avec leur bouton Compile",
+      'scskiller.s2': 'La file de compilation SCSKiller dans Big Picture : un jeu en cours, avec Pause et Stop',
+      'scskiller.s3': 'Une fiche de jeu Steam pendant une compilation SCSKiller : Pause à côté du pourcentage',
+      'scskiller.s4': 'La fenêtre des chiffres de SCSKiller : shaders, pipelines, cache, estimation, moteur, Compile et Close',
+      'scskiller.c1': "Menu d'accès rapide : tous les jeux, prêts à compiler",
+      'scskiller.c2': 'La file de compilation : en cours, en attente, terminés',
+      'scskiller.c3': 'Sur la fiche du jeu : le pourcentage et Pause',
+      'scskiller.c4': 'La fenêtre des chiffres : shaders, pipelines, estimation, moteur',
+      'carousel.prev': 'Image précédente',
+      'carousel.next': 'Image suivante',
+      'carousel.images': 'Images',
+      'carousel.image': 'Image',
       'steamswitch.name': 'Changer de compte et jouer',
       'steamswitch.navDesc': 'Steam Big Picture',
       'steamswitch.desc': 'Quand un jeu appartient à un autre compte Steam mémorisé sur ce PC, Steam affiche Borrow. Ce plugin le remplace par Switch account & Play : Steam redémarre connecté au compte propriétaire et y lance le jeu.',
@@ -86,6 +108,8 @@
     ? stored
     : (String(navigator.language || 'en').toLowerCase().startsWith('fr') ? 'fr' : 'en');
 
+  let relabelCarousels = () => {};   // the carousel labels (dots) follow the language too
+
   const applyLang = next => {
     lang = I18N[next] ? next : 'en';
     document.documentElement.lang = lang;
@@ -100,6 +124,11 @@
       const text = I18N[lang][el.dataset.i18nAlt];
       if (text != null) el.alt = text;
     }
+    for (const el of document.querySelectorAll('[data-i18n-aria]')) {
+      const text = I18N[lang][el.dataset.i18nAria];
+      if (text != null) el.setAttribute('aria-label', text);
+    }
+    relabelCarousels();
     document.title = I18N[lang].title;
     try { localStorage.setItem(STORAGE_KEY, lang); } catch { /* storage blocked */ }
   };
@@ -138,6 +167,47 @@
   addEventListener('hashchange', () => select((location.hash || '').slice(1), false));
 
   select((location.hash || '').slice(1) || document.querySelector('.nav-item')?.dataset.panel, false);
+
+  /* ---------- carousel: one screenshot at a time, arrows, dots and captions ---------- */
+
+  const carousels = [];
+  for (const root of document.querySelectorAll('[data-carousel]')) {
+    const slides = [...root.querySelectorAll('.carousel-slide')];
+    const dotsBox = root.querySelector('.carousel-dots');
+    if (slides.length < 2 || !dotsBox) continue;
+    let at = 0;
+    const relabel = () => {
+      const word = I18N[lang]['carousel.image'] || 'Image';
+      dots.forEach((dot, index) => dot.setAttribute('aria-label', `${word} ${index + 1}`));
+    };
+    const show = next => {
+      at = (next + slides.length) % slides.length;
+      slides.forEach((slide, index) => {
+        slide.hidden = index !== at;
+        slide.classList.toggle('is-active', index === at);
+      });
+      dots.forEach((dot, index) => dot.setAttribute('aria-selected', String(index === at)));
+      relabel();
+    };
+    const dots = slides.map((_, index) => {
+      const dot = document.createElement('button');
+      dot.type = 'button';
+      dot.className = 'carousel-dot';
+      dot.setAttribute('role', 'tab');
+      dot.addEventListener('click', () => show(index));
+      dotsBox.appendChild(dot);
+      return dot;
+    });
+    root.querySelector('[data-carousel-prev]')?.addEventListener('click', () => show(at - 1));
+    root.querySelector('[data-carousel-next]')?.addEventListener('click', () => show(at + 1));
+    root.addEventListener('keydown', event => {
+      if (event.key === 'ArrowLeft') { show(at - 1); event.preventDefault(); }
+      if (event.key === 'ArrowRight') { show(at + 1); event.preventDefault(); }
+    });
+    carousels.push({ relabel });
+    show(0);
+  }
+  relabelCarousels = () => { for (const carousel of carousels) carousel.relabel(); };
 
   /* ---------- real version, read from the plugin's package.json ---------- */
 

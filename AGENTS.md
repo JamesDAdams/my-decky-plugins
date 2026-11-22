@@ -332,6 +332,12 @@ this order:
    `<article>`, before `.panel-body>`** (`<article> <div class="shots">…</div> <div class="panel-body">…`).
    `.shot` for a normal capture, `.shot.wide` for a bar/strip capture, `.shot.portrait` for tall ones.
    It is never inside `.panel-body` and never below the title;
+   A plugin with more than one screenshot uses the same top slot as
+   `<div class="shots carousel" data-carousel>`: one `<figure class="carousel-slide">` per image (the
+   first visible, the others `hidden`) with a `<figcaption data-i18n="…">`, then one `.carousel-bar`
+   holding `[data-carousel-prev]`, `.carousel-dots` and `[data-carousel-next]`. `docs/app.js` builds
+   the dots, wires the arrows and ←/→, and keeps every label (`data-i18n-alt`, `data-i18n-aria`, dot
+   names) in the current language - SCSKiller is the reference;
 2. `.panel-head` **inside `.panel-body`** — `<h2>` with the plugin name and the `<span class="tag">`
    (`Big Picture`);
 3. `.lead` — one sentence: what the plugin changes, where;
