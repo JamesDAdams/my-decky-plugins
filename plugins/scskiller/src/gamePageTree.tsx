@@ -4,15 +4,16 @@ import type { Patch } from "@decky/ui";
 import type { ReactElement } from "react";
 import { diagnostics } from "./diagnostics";
 import { report } from "./report";
-import { ScskButton } from "./ui/ScskButton";
+import { ScskButton, setActiveAppid } from "./ui/ScskButton";
 
 /**
- * Insert the button just above Steam's play bar, anchored to the right so it lands
- * immediately left of the controller icon (which sits at the right end of that bar).
+ * The compact SCSKiller button sits on Steam's play bar, immediately left of the controller icon.
  *
- * The plugin runs in Steam's shared JS context (a 1x1 page), so the visible DOM is
- * out of reach: only the shared React route tree can be patched. The play bar is the
- * second child of the app page's content column (the first is the artwork header).
+ * It is a **single, module-level element**: the route patch inserts the same React element on
+ * every render, so React keeps the component mounted. That matters more than it looks - an
+ * unmounting `Focusable` unregisters its gamepad navigation node, and a freshly registered node
+ * lands under the page container instead of the icon row. The keeper in `gamepadFix.ts` then only
+ * has to move that one node once into the icon row (see AGENTS.md section 3c).
  */
 
 const ROUTE = "/library/app/:appid";
@@ -25,6 +26,19 @@ const OFFSET_TOP = 16;
 let inner: Patch | undefined;
 let routePatch: any;
 let layoutReported = false;
+
+/** Built once: same element identity on every render, so React never remounts the button. */
+const OVERLAY = (
+  <div
+    key={BUTTON_KEY}
+    data-scskiller="overlay"
+    style={{ position: "relative", height: 0, width: "100%", zIndex: 10 }}
+  >
+    <div style={{ position: "absolute", right: OFFSET_RIGHT, top: OFFSET_TOP }}>
+      <ScskButton />
+    </div>
+  </div>
+);
 
 function readAppId(overview: any): number {
   const raw = overview?.appid ?? overview?.app_id;
@@ -53,6 +67,8 @@ export function installGamePageButton(): () => void {
               (_args: any[], ret: ReactElement) => {
                 try {
                   if (!appid) return ret;
+                  // the button reads this on every render (it is mounted once)
+                  setActiveAppid(appid);
                   const container = findInReactTree(
                     ret,
                     (node: any) =>
@@ -67,32 +83,16 @@ export function installGamePageButton(): () => void {
                     report(`game page: ${diagnostics.detail}`);
                     return ret;
                   }
-                  if (children.some((child: any) => child?.key === BUTTON_KEY)) {
-                    diagnostics.injected = true;
-                    return ret;
+                  if (!children.some((child: any) => child?.key === BUTTON_KEY)) {
+                    // between the artwork header and the play bar, at zero height, so the button
+                    // overflows onto the bar without moving anything
+                    children.splice(Math.min(1, children.length), 0, OVERLAY);
                   }
-
-                  // index 0 is the artwork header, index 1 the play bar: sit between
-                  // them, at zero height, and let the button overflow onto the bar
-                  children.splice(
-                    Math.min(1, children.length),
-                    0,
-                    <div
-                      key={BUTTON_KEY}
-                      data-scskiller="overlay"
-                      style={{ position: "relative", height: 0, width: "100%", zIndex: 10 }}
-                    >
-                      <div style={{ position: "absolute", right: OFFSET_RIGHT, top: OFFSET_TOP }}>
-                        <ScskButton appid={appid} />
-                      </div>
-                      {/* the Play button is replaced by a Pause overlay by the top-bar injector */}
-                    </div>,
-                  );
                   diagnostics.injected = true;
                   diagnostics.appid = appid;
-                  diagnostics.detail = `app ${appid}: right ${OFFSET_RIGHT} / below header`;
+                  diagnostics.detail = `app ${appid}: on the play bar (gamepad: icon row)`;
+                  return ret;
                 } catch (exc: unknown) {
-                  // a different Steam layout: leave the page alone, but say so once in the log
                   if (!layoutReported) {
                     layoutReported = true;
                     report(`game page: patch failed (${String(exc)})`);

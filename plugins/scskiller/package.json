@@ -1,6 +1,6 @@
 {
   "name": "scskiller-decky",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "Decky Loader plugin: SCSKiller status and compile button on a Steam game's page (Windows SCSKiller install)",
   "type": "module",
   "scripts": {

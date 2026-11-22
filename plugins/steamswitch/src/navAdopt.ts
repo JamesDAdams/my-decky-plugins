@@ -69,6 +69,17 @@ export function uiDocument(): Document | null {
   return doc;
 }
 
+/** Steam focuses its own items with tabindex 0; a clone keeps -1 and cannot take DOM focus. */
+function makeFocusable(element: Element | null | undefined): void {
+  try {
+    if (element && element.getAttribute && element.getAttribute("tabindex") === "-1") {
+      element.setAttribute("tabindex", "0");
+    }
+  } catch {
+    // a detached element: nothing to do
+  }
+}
+
 /** The navigation node of a DOM element, if the controller can already reach it. */
 export function nodeFor(element: Element | null | undefined): NavNode | null {
   if (!element) return null;
@@ -95,6 +106,10 @@ export function moveUnder(node: NavNode, parent: NavNode): boolean {
     node.m_Parent = parent;
     if (parent.m_Tree) node.m_Tree = parent.m_Tree;
     node.m_nDepth = (parent.m_nDepth ?? 0) + 1;
+    // measured: traversal only keeps a child whose GetFocusable() is not "none", and that reads
+    // m_Properties.focusable - a node without it stays in the tree but is skipped by the D-pad
+    node.m_Properties = Object.assign({ focusable: true }, node.m_Properties ?? {});
+    makeFocusable(node.m_element);
     if (!Array.isArray(parent.m_rgChildren)) parent.m_rgChildren = [];
     parent.m_rgChildren.push(node);
     parent.m_bChildrenSorted = false;
@@ -132,7 +147,10 @@ export function adopt(element: Element | null | undefined, parent: NavNode, temp
     node.m_Focused = false;
     node.m_FocusWithin = false;
     node.m_bChildrenSorted = true;
-    node.m_Properties = {};
+    // the focus filter (GetFocusable) reads m_Properties.focusable; without it the node is in
+    // the tree but the D-pad walks straight past it
+    node.m_Properties = Object.assign({ focusable: true }, template.m_Properties ?? {});
+    makeFocusable(element);
     if (!Array.isArray(parent.m_rgChildren)) parent.m_rgChildren = [];
     parent.m_rgChildren.push(node);
     parent.m_bChildrenSorted = false;

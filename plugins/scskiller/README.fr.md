@@ -17,9 +17,9 @@ pont, pas une copie.
 
 ## Installation
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.8.3.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.8.4.zip)
 
-1. Téléchargez le zip (`SCSKiller-decky-0.8.3.zip`).
+1. Téléchargez le zip (`SCSKiller-decky-0.8.4.zip`).
 2. Decky Loader → icône engrenage → **Install from zip file** → sélectionnez ce zip.
 3. Redémarrez Steam : Decky recharge le frontend du plugin, mais son backend Python ne démarre qu'au
    redémarrage de Steam.

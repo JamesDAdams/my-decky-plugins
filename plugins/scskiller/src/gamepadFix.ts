@@ -6,20 +6,21 @@ import { adopt, moveUnder, nodeFor, uiDocument, walkNodes } from "./navAdopt";
  *
  * Two things need it:
  *  - the 48x48 button over the play bar: React registers its navigation node under the page
- *    container (the overlay is a child of the content column), so the node has to be moved under
- *    the icon row - the group the controller walks with Left/Right;
+ *    container (that is the React parent of the overlay), so the node is moved under the icon row,
+ *    the group the controller walks with Left/Right. The button element is rendered once, so the
+ *    node survives re-renders and the move is not lost;
  *  - the "SCSKiller" entry of the left menu: Steam's sidebar only gives focus to the entries it
- *    built from its own page objects, so the entry may exist in the DOM without a navigation node
- *    and is adopted from the Downloads entry next to it.
+ *    built from its own page objects, so the entry is adopted from the Downloads entry next to it.
  *
- * Both fixes are idempotent and cheap, and both are verified with tools/nav-audit.mjs, which
- * prints the focus parent of a selected element.
+ * Everything is idempotent, and every claim is measured with tools/nav-audit.mjs (focus parent of
+ * an element) and tools/nav-pad.mjs (virtual D-pad press + focused element).
  */
 
-const INTERVAL_MS = 1200;
+const INTERVAL_MS = 150;
 
 let timer: ReturnType<typeof setInterval> | undefined;
 let lastReport = "";
+let moves = 0;
 
 function say(message: string): void {
   if (message === lastReport) return;
@@ -42,15 +43,12 @@ function fixGamePageButton(): void {
 
   const rowNode = nodeFor(row);
   const buttonNode = nodeFor(button);
-  if (!rowNode) {
-    say("game page: the icon row has no navigation node");
-    return;
+  if (!rowNode || !buttonNode) return;
+  if (buttonNode.m_Parent === rowNode) return;
+  if (moveUnder(buttonNode, rowNode)) {
+    moves += 1;
+    say(`game page: button moved into the icon row (${moves} time(s))`);
   }
-  if (!buttonNode) {
-    say("game page: the button has no navigation node");
-    return;
-  }
-  if (moveUnder(buttonNode, rowNode)) say("game page: button moved into the icon row");
 }
 
 function fixMenuEntry(): void {
@@ -73,7 +71,6 @@ function fixMenuEntry(): void {
   const parent = template?.m_Parent ?? null;
   if (!template || !parent) return;
 
-  // the entry lives in the left menu document, as a 240 px item next to the native ones
   const doc = downloads.ownerDocument;
   const item = [...doc.querySelectorAll("div")].find((element) => {
     const box = element.getBoundingClientRect();
@@ -86,7 +83,7 @@ function fixMenuEntry(): void {
     );
   }) as HTMLElement | undefined;
   if (!item) return;
-  if (nodeFor(item)) return; // Steam already registered it
+  if (nodeFor(item)) return;
   if (adopt(item, parent, template)) say("menu: entry adopted into the sidebar focus group");
 }
 
@@ -96,7 +93,7 @@ export function installGamepadFix(): () => void {
     try {
       fixGamePageButton();
     } catch {
-      // a different Steam build: never break the UI for a focus fix
+      // a focus fix must never break the UI
     }
     try {
       fixMenuEntry();
