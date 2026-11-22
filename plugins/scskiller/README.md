@@ -17,9 +17,9 @@ is a bridge, not a copy.
 
 ## Install
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.0.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.2.zip)
 
-1. Download the zip (`SCSKiller-decky-0.9.0.zip`).
+1. Download the zip (`SCSKiller-decky-0.9.2.zip`).
 2. Decky Loader -> gear icon -> **Install from zip file** -> select that zip.
 3. Restart Steam: Decky reloads the plugin's frontend, but its Python backend only starts on a Steam
    restart.
@@ -34,10 +34,12 @@ Windows), then restart Steam. The folder must be named `SCSKiller`, the `name` i
 icon**, with the SCSKiller badge and a green dot (compiled) or a red dot (to compile).
 
 > How: Decky plugin JavaScript runs in Steam's shared JS context, a 1x1 px page that cannot query the
-> visible DOM. The button is therefore a **copy of the native `Manage` icon of that row** (same
-> classes, same size, no React handlers), inserted as the row's first child, and it receives a **copy
-> of that icon's gamepad navigation node** - the structure Big Picture walks when the controller
-> moves. A 400 ms keeper puts the node back if a Steam re-render drops it.
+> visible DOM. The button is drawn in its **own fixed layer** appended to `document.body` (never inside
+> a row Steam renders, which would break React's reconciliation of that row) and positioned from the
+> controller icon's own rectangle. It gets a **navigation node in the icon row's focus group**, copied
+> from the row's `Manage` icon, with the two properties that answer for the *wrong* element
+> (`fnCanTakeFocus`, `childFocusDisabled`) dropped: measured, a copied node that keeps them reports
+> `GetFocusable() = "none"` and the controller walks straight past it.
 
 A click opens a **stats window** with the numbers SCSKiller itself displays:
 
@@ -272,16 +274,18 @@ tools/                   CDP scripts (eval, reload, click, key, shot) to verify 
 build.ps1                typecheck + build + ASCII check + tests + install + zip
 ```
 
-Why the button is a copy of a native icon: the plugin's JavaScript runs in Steam's shared context, a
-1x1 px page that cannot query the visible DOM, and Big Picture moves the gamepad focus through the
-**navigation nodes** Steam registers for its own `Focusable` components. A React element inserted by a
+Why the button lives in its own layer with a copied node: the plugin's JavaScript runs in Steam's shared
+context, a 1x1 px page that cannot query the visible DOM, and Big Picture moves the gamepad focus through
+the **navigation nodes** Steam registers for its own `Focusable` components. A React element inserted by a
 route patch looks right but its node lands under the page container (audited: parent
 `_1SvpjsckP9cPRxO6gCBHrw` instead of the icon row `_1thLDT_28YIf6OkgIb6n-4`), and the controller walks
-past it. The icon row is itself a focus group whose children *are* registered nodes, so the button is a
-copy of the `Manage` icon of that row (same markup, same 48x48 box, first child of the row) and it
-inherits that icon's node: as far as the navigation tree is concerned, it is one more icon of the row,
-in the right place. The row is re-sorted by geometry (`EnsureChildrenSorted`), which puts the button
-before the controller icon (1151 < 1199 < 1267 px).
+past it. Adding markup *inside* the row is worse: the row is a React child list, so the next
+reconciliation of Steam's tree can move or drop elements, and the whole row stops being reachable
+(measured: after such an insert, none of the three icons could be focused from Play). The button is
+therefore drawn outside Steam's containers, in a fixed layer, at the rectangle of the controller icon
+minus its own width and the 10 px gap, and only its **node** joins the row's focus group: a copy of the
+row's own `Manage` icon node, with `fnCanTakeFocus` and `childFocusDisabled` dropped, because a copied
+node that keeps them answers for the *other* element and reports `GetFocusable() = "none"`.
 
 On the backend side:
 

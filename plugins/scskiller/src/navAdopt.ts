@@ -148,8 +148,14 @@ export function adopt(element: Element | null | undefined, parent: NavNode, temp
     node.m_FocusWithin = false;
     node.m_bChildrenSorted = true;
     // the focus filter (GetFocusable) reads m_Properties.focusable; without it the node is in
-    // the tree but the D-pad walks straight past it
-    node.m_Properties = Object.assign({ focusable: true }, template.m_Properties ?? {});
+    // the tree but the D-pad walks straight past it. Measured (2026-11-22): the copy also inherits
+    // the template's fnCanTakeFocus, which answers for the *template's* element, so the copy reports
+    // "none" and the D-pad skips it. Both keys are dropped and focusable is forced.
+    const properties: Record<string, unknown> = Object.assign({}, node.m_Properties ?? template.m_Properties ?? {});
+    delete properties.fnCanTakeFocus;
+    delete properties.childFocusDisabled;
+    properties.focusable = true;
+    node.m_Properties = properties;
     makeFocusable(element);
     if (!Array.isArray(parent.m_rgChildren)) parent.m_rgChildren = [];
     parent.m_rgChildren.push(node);
