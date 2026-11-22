@@ -172,7 +172,7 @@ Going through the route patcher does **not** reach that row, and this is the imp
 | A dialog's button row must be a horizontal `Focusable` | a Steam dialog is its own nav tree (`ModalDialogOverlay_Modal_<n>`, active focus tree) but its content container is **vertical** (`GetLayout() = 1`, `flexDirection: column`); a plain `div` footer is not a nav node, so its buttons became children of that vertical container and only up/down moved between them (left/right did nothing - reported as "the pad cannot select the buttons"). Wrapping the footer in `<Focusable style={{display:"flex", flexDirection:"row"}}>` fixes it: measured `Refresh -> right: Warmed -> right: Close -> A: closed, focus back on the page` |
 | A focused control must *look* focused | `noFocusRing` + a custom `style` makes a button identical focused and unfocused: the pad moves (the focus log proves it) and the user still reports "the pad cannot select". Paint it: `.<class>:focus{background:#e6e8ea!important;color:#16191d!important}`. Check with a screenshot of the focused state, not just the nav tree |
 | A QAM list needs **one horizontal group per row** | nested `Focusable`s do work (an older comment in `GameRow` claimed otherwise): wrapping the row in `<Focusable style={{display:"flex",flexDirection:"row"}}>` gives a node with `GetFocusable() = "children"`, `GetLayout() = 2`, children `[game (self), Compile (self)]` → measured `down: Dead by Daylight -> right: Compile -> left: row -> down: next game`. Before, the QAM's vertical container had **40 flat children** and Down walked label -> button -> next label |
-| A node whose element is **detached** freezes the whole group | measured: six `down` presses in the rail left the focus on `Home`; the offending node answered `GetFocusable() = "self"` with a `0,0` rect (its clone had been rebuilt). Prune the group's children whose `m_element.isConnected === false` before re-adopting, then re-insert the node at the DOM position |
+| A node whose element is **detached** freezes the whole group | measured: six `down` presses in the rail left the focus on `Home`; the offending node answered `GetFocusable() = "self"` with a `0,0` rect (its clone had been rebuilt). Prune **only your own** dead nodes (`element.isConnected === false` and inside a `[data-scsk-menu]` clone) from the group, then `adopt()` again. Do **not** re-sort the rail group by hand: moving the node next to its template and calling `EnsureChildrenSorted()` froze every direction (measured right after: `down` kept the focus on `Home`); dropping that step and letting `adopt()` append the node made the walk work again (`down x6 -> SCSKiller -> ok -> /routes/scskiller`). Steam resolves the order from the geometry |
 | A DOM-clone rail entry is focused on its **inner `[role="menuitem"]`** | the clone of the Downloads row can be a *wrapper*: `clone.matches('[role="menuitem"]')` is false and the focused element is `clone.querySelector('[role="menuitem"]')`. Listeners, `aria-label`, `vgp_onok` and the focus painting must go **there** (measured: otherwise the focus lands, the row stays grey and A does nothing) |
 
 **The D-pad can be simulated** — `plugins/scskiller/tools/pad-sim.mjs`:
@@ -190,7 +190,7 @@ node plugins/scskiller/tools/pad-sim.mjs --from Play right right right left left
 | Why earlier presses did nothing | the traversal threw on the adopted node (`m_Focused.Set is not a function`); with a valid tree the presses move the focus exactly like the hardware |
 | Verified walk on the game page | `Play -> right: SCSKiller -> right: Configure Controller -> right: Manage -> left: Configure Controller -> left: SCSKiller -> left: Play` |
 | What the dispatcher rejects | a tree with `BIsGamepadInputSuppressed()`, or a button while `m_rgCatchAllGamepadInput` swallows the press |
-| Nothing moves at all? check the traps first | 1) Steam's screensaver: a `Screensaver_uid2` CEF target means every press is swallowed and a desktop capture is black → `tools/wake-steam.ps1` (one real Shift press, the virtual dispatch does not wake it). 2) the window: `tools/focus-bp.ps1`. 3) the surface: `MenuStore.GetOpenSideMenu()` = `0` none, `1` main menu, `2` quick access; `OpenMainMenu()` does nothing while the QAM is open, and the closed surface's nodes stay inactive so `TakeFocus` fails silently (measured 2026-11-22) |
+| Nothing moves at all? check the traps first | 1) Steam's `Screensaver_uid2` (the "Away" screen) swallows every gamepad press and paints a black desktop capture; an OS Shift/click does **not** reliably dismiss it (measured 2026-11-22) but `node tools/kill-screensaver.mjs` (CDP `Page.close` on that target) does — and it comes back after a couple of idle minutes, so check the target list before every walk. 2) the window: `tools/focus-bp.ps1`. 3) the surface: `MenuStore.GetOpenSideMenu()` = `0` none, `1` main menu, `2` quick access; `OpenMainMenu()` does nothing while the QAM is open, and the closed surface's nodes stay inactive so `TakeFocus` fails silently (measured 2026-11-22) |
 
 Before claiming anything about the controller, run that walk; a "mouse only" or "not reachable" conclusion
 is no longer acceptable when the presses can be reproduced.
@@ -256,9 +256,11 @@ every entry uses `/`.
 - `docs/qam-shortcut-plugin.md` — case study of the `Ctrl+2` plugin (what failed and why).
 - `docs/workshop.md` — the workshop index (layout, skills, tooling, plugins).
 
-**Tooling**: `tools/` (CDP) — see `tools/README.md`. Before any gamepad probe: `tools/wake-steam.ps1`
-(wakes the Steam screensaver, which swallows every press) then `tools/focus-bp.ps1` (brings the
-`Steam Big Picture Mode` window to the foreground). Plugin-specific helpers live next to their plugin
+**Tooling**: `tools/` (CDP) — see `tools/README.md`. Before any gamepad probe: `node
+tools/kill-screensaver.mjs` (Steam's `Screensaver_uid2` "Away" screen swallows every press; it comes
+back after idle minutes, so re-run it before each walk) then `tools/focus-bp.ps1` (brings the
+`Steam Big Picture Mode` window to the foreground; `tools/wake-steam.ps1` only sends an OS input and
+is not enough on its own). Plugin-specific helpers live next to their plugin
 (`plugins/scskiller/tools/cdp-eval.mjs`, `cdp-reload.mjs`, `cdp-inject.mjs`, `cdp-click.mjs`,
 `cdp-key.mjs`, `cdp-console.mjs`, `cdp-shot.mjs`, `nav-audit.mjs`, `nav-probe.mjs`, `pad-sim.mjs`
 (gamepad simulator — `--from <label> right right left`, `--walk`, see the `decky-gamepad-focus`

@@ -72,7 +72,7 @@ Surface by surface:
 | The focused glyph vanishes on a white box | the native class colours the **`svg`** white with a stronger selector than the button's `color`, so `:focus{background:white}` gives a white glyph on white (measured: computed `fill: rgb(255,255,255)` while focused) | force it: `[data-x]:focus svg, [data-x]:focus svg path { color:#16191d!important; fill:#16191d!important }` |
 | A node of the group points at a **detached** element (the clone was rebuilt after a Steam re-render) | the whole group stops moving: measured, six `down` presses left the focus on `Home`; the node still answers `GetFocusable() = "self"` with a `0,0` rect | before re-adopting, prune the group's children whose `m_element.isConnected === false`, then insert the new node at the DOM position and `EnsureChildrenSorted()` |
 | The cloned wrapper is not the element Steam focuses | the clone looks right but the node points at the inner `[role="menuitem"]`: focus lands, the row stays grey, A does nothing | put aria/listeners/painting on the inner menuitem (`clone.querySelector('[role="menuitem"]')`), keep `data-*` on the wrapper for lookups |
-| Steam's **screensaver** is running (`Screensaver_uid2` target) | every press does nothing, the focus never moves, and a desktop capture is black | it is not your code: send a real OS input (`tools/wake-steam.ps1`, one Shift press) and check `http://localhost:8080/json` no longer lists `Screensaver_uid2` |
+| Steam's **screensaver** is running (`Screensaver_uid2` target) | every press does nothing, the focus never moves, and a desktop capture is black | it is not your code: `node tools/kill-screensaver.mjs` closes that target (CDP `Page.close`). An OS Shift or click does **not** reliably dismiss it, and it returns after a couple of idle minutes: re-check the target list before every walk |
 
 `adopt()` in `plugins/scskiller/src/navAdopt.ts` (and the `steamswitch` copy) implements all of this.
 Use it; do not hand-roll a node.
@@ -131,7 +131,7 @@ Object.keys(node.m_Properties)              // focusable, fnCanTakeFocus, childF
 Three things must be true before a press can move anything — check them in this order, it saves hours:
 
 ```powershell
-powershell -File tools/wake-steam.ps1        # 1. no Screensaver_uid2 target (it swallows every press)
+node tools/kill-screensaver.mjs              # 1. no Screensaver_uid2 target (it swallows every press)
 powershell -File tools/focus-bp.ps1          # 2. Steam Big Picture Mode is the foreground window
 node tools/cdp.mjs SharedJSContext tools/open-main-menu.js   # 3. the surface you walk is the OPEN one
 ```
@@ -249,7 +249,9 @@ A surface is done when all of these are true — not when it compiles, and not w
 
 - [ ] element inside the native row (not a fixed overlay outside it)
 - [ ] node adopted from a sibling of the same row, `GetFocusable()` ≠ `none`, focus stores are objects
-- [ ] node placed at the DOM index, then `EnsureChildrenSorted()`
+- [ ] node placed at the DOM index, then `EnsureChildrenSorted()` — **except** in the left rail, where
+      re-sorting by hand froze every direction: there, let `adopt()` append the node and let Steam
+      resolve the order from the geometry (measured 2026-11-22)
 - [ ] keeper restores element and node after a Steam re-render
 - [ ] `:focus` style painted by the plugin, with the glyph forced dark (the native class paints the
       svg white - a plain `color` change leaves a white glyph on the white focused background)

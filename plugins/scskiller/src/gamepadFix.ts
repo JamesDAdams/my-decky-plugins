@@ -62,14 +62,14 @@ function fixMenuEntry(): void {
 
   // Steam re-renders the list and bpmMenu.ts has to rebuild the clone: the previous node then
   // points at a DETACHED element, and such a node still answers GetFocusable() = "self", so the
-  // D-pad stops on nothing and the whole menu stops moving (measured 2026-11-22: a dead node in
-  // the middle of the sidebar group froze Up/Down on Home). Only the sidebar group is touched.
+  // D-pad stalls on nothing (measured 2026-11-22: six Down presses in a row left the focus on
+  // Home). Only our own dead entries are removed, and only from the sidebar group.
   const children: NavNode[] = Array.isArray(parent.m_rgChildren) ? parent.m_rgChildren : [];
+  const isOurs = (element: HTMLElement | null | undefined): boolean =>
+    Boolean(element && (element.hasAttribute?.("data-scsk-menu") || element.closest?.("[data-scsk-menu]")));
   for (const node of [...children]) {
     const element = node?.m_element as HTMLElement | null | undefined;
-    const dead = Boolean(element) && element!.isConnected === false;
-    const replaced = Boolean(element && element !== item && element.hasAttribute?.("data-scsk-menu-item"));
-    if (!dead && !replaced) continue;
+    if (!element || element === item || !isOurs(element) || element.isConnected !== false) continue;
     try {
       const index = children.indexOf(node);
       if (index >= 0) children.splice(index, 1);
@@ -80,24 +80,11 @@ function fixMenuEntry(): void {
     }
   }
 
-  let node = nodeFor(item);
-  if (!node) {
-    node = adopt(item, parent, template);
-    if (!node) return;
-    say("menu: entry adopted into the sidebar focus group");
-  }
-  // tree order must follow the DOM order (the clone sits right after Downloads), otherwise the
-  // traversal reads a stale index: put the node after its template and let Steam re-sort
-  try {
-    const index = children.indexOf(node);
-    if (index >= 0) children.splice(index, 1);
-    const after = children.indexOf(template);
-    children.splice(after >= 0 ? after + 1 : children.length, 0, node);
-    parent.m_bChildrenSorted = false;
-    if (typeof parent.EnsureChildrenSorted === "function") parent.EnsureChildrenSorted();
-  } catch {
-    // ordering is a nicety; the node is still reachable
-  }
+  // the node is appended after its template and left there: re-sorting the group by hand froze
+  // the whole rail (measured 2026-11-22: with the reorder + EnsureChildrenSorted(), no direction
+  // moved the focus any more; Steam resolves the order from the geometry instead)
+  if (nodeFor(item)) return;
+  if (adopt(item, parent, template)) say("menu: entry adopted into the sidebar focus group");
 }
 
 export function installGamepadFix(): () => void {
