@@ -69,8 +69,8 @@ const FOCUS = `(() => {
 const FOCUS_BY_NAME = (name) => `(() => {
   const manager = window.SteamUIStore.NavigationManager;
   const context = manager.m_ActiveContext;
-  const trees = (context && context.m_rgGamepadNavigationTrees) || [];
-  const tree = context.m_LastActiveNavTree || trees[0];
+  const tree = context && (context.m_LastActiveNavTree || (context.m_rgGamepadNavigationTrees || [])[0]);
+  if (!tree) return "no tree";
   const wanted = ${JSON.stringify(name)};
   let hit = null;
   const seen = new Set();
@@ -85,7 +85,9 @@ const FOCUS_BY_NAME = (name) => `(() => {
     }
     for (const child of node.m_rgChildren || []) walk(child);
   };
-  for (const t of trees) walk(t && t.m_Root);
+  // only the active tree: a node of a closed surface (a hidden menu, another window) cannot take
+  // the focus, and TakeFocus then fails silently while the walk keeps running from the old place
+  walk(tree.m_Root);
   if (!hit) return "missing";
   tree.TakeFocus(hit);
   return "ok";
