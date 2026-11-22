@@ -39,7 +39,13 @@ Whatever the plugin draws, the same three questions decide whether a controller 
    buttons inside a vertical container only moves up/down. Wrap each row in a `Focusable` with an
    explicit `flexDirection` (`row` for a footer/tab strip, `column` for a list).
 3. **Can you see the focus?** `noFocusRing` + a custom style = invisible selection. Either drop
-   `noFocusRing` or paint `:focus` yourself (`background:#e6e8ea; color:#16191d`).
+   `noFocusRing` or paint `:focus` yourself (`background:#e6e8ea; color:#16191d`). For a cloned
+   native element that means `addEventListener('focus'/'blur')` in the injected script: a clone has
+   no React state, so Steam has nothing to paint (measured on the account page button: reachable, but
+   white-on-grey just like unfocused, so the user reported "I cannot go on it").
+
+4. **Can the controller activate it?** A `Focusable` fires `onActivate` on A. A DOM clone fires
+   nothing: wire `vgp_onok` yourself (and keep the mouse click).
 
 Surface by surface:
 
@@ -49,7 +55,7 @@ Surface by surface:
 | Full-page route (`routerHook.addRoute`) | build the page out of `Focusable`s; give the page at least one control, and `autoFocus` the first one | nothing focusable → the pad does nothing (only B works) |
 | QAM panel (`content:`) | `Focusable` per control, `autoFocus` on the tab or the first button: **measured**, after selecting the plugin entry the panel opened with `m_lastFocusNode = null` until a control carried `autoFocus` | focus lost on open, the panel feels dead |
 | Modal dialog (`showModal`) | footer = horizontal `Focusable`, one `Focusable` per button, `:focus` painted (§7) | only up/down moves, selection invisible |
-| Injected DOM (icon row of another window, top bar, overlay) | the injected code has no `SteamUIStore`: the plugin context must adopt the node from a native neighbour and wire `vgp_onok` | mouse-only control (still open in `topBar.ts`: the status badge and the compile overlay's Cancel) |
+| Injected DOM (icon row of another window, top bar, overlay, account button) | the injected code has no `SteamUIStore`: the plugin context must adopt the node from a native neighbour **and** the injected code must paint its own focus + answer `vgp_onok` (measured: the account-page clone was reachable but looked identical focused, and A did nothing, because a clone has neither React state nor a Focusable handler) | mouse-only control, or a control that works and looks dead |
 | Left rail entry | the page object renders without a node → `adopt(item, nodeFor(downloads).m_Parent, nodeFor(downloads))`, then run the walk in the rail tree | entry visible, unreachable |
 
 ## 3. Why a plugin control usually is not reachable

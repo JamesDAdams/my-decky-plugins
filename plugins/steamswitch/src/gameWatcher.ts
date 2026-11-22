@@ -173,6 +173,14 @@ function accountScript(current: string, others: { account: string; persona: stri
     "try { ev.preventDefault(); ev.stopPropagation(); } catch (e) {}" +
     "st.asks.push({ kind: 'account', account: entry.account, persona: entry.persona, at: Date.now() });" +
     "}); })(acc);" +
+    // A controller user must SEE the selection and be able to press A: the clone has no React
+    // state (so Steam paints nothing on focus) and no Focusable handler (so A would do nothing)
+    "btn.addEventListener('focus', function () { btn.style.background = '#e6e8ea'; btn.style.color = '#16191d'; });" +
+    "btn.addEventListener('blur', function () { btn.style.background = ''; btn.style.color = ''; });" +
+    "btn.addEventListener('vgp_onok', function (ev) {" +
+    "try { ev.preventDefault(); ev.stopPropagation(); } catch (e) {}" +
+    "btn.click();" +
+    "});" +
     "row.appendChild(btn); }" +
     "var span = btn.firstElementChild;" +
     "if (!span || span.tagName !== 'SPAN') {" +

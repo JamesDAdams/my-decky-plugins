@@ -56,9 +56,9 @@ Le même zip fonctionne sur n'importe quel PC Windows dont Steam mémorise au mo
 
 ## Installation
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.3.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.4.zip)
 
-1. Téléchargez `SteamSwitch-decky-0.1.3.zip` depuis `releases/`.
+1. Téléchargez `SteamSwitch-decky-0.1.4.zip` depuis `releases/`.
 2. Decky (menu `...`) -> **Install from zip file**.
 3. Redémarrez Steam (Decky recharge les plugins au démarrage ; le backend Python n'est pas rechargé à
    chaud).
