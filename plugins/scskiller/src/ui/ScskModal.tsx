@@ -213,7 +213,14 @@ export function ScskModal({ appid, onClose }: { appid: number; onClose: () => vo
 
         {error ? <div style={{ marginTop: 8, color: RED, fontSize: 12 }}>{error}</div> : null}
 
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", alignItems: "center", marginTop: 14 }}>
+        {/* The footer must be a focus group of its own: inside the dialog's own node the three
+            buttons are children of a *vertical* container, so the D-pad only moved up and down
+            between them (measured: parent layout 1, left/right did nothing). A horizontal Focusable
+            gives them a row: left/right walks the buttons, up/down leaves the group. */}
+        <Focusable
+          noFocusRing
+          style={{ display: "flex", flexDirection: "row", gap: 8, justifyContent: "flex-end", alignItems: "center", marginTop: 14 }}
+        >
           {busy ? <span style={{ fontSize: 12, opacity: 0.7 }}>working...</span> : null}
           <Focusable noFocusRing onActivate={refresh} style={{ ...BUTTON, opacity: busy ? 0.6 : 1 }}>
             <span>Refresh</span>
@@ -238,7 +245,7 @@ export function ScskModal({ appid, onClose }: { appid: number; onClose: () => vo
           <Focusable noFocusRing onActivate={onClose} style={BUTTON}>
             <span>Close</span>
           </Focusable>
-        </div>
+        </Focusable>
       </div>
     </ModalShell>
   );

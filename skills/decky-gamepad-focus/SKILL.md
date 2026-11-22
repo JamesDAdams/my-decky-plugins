@@ -121,7 +121,27 @@ from Play: Play @38,367
 If presses do nothing: check `manager.GetEventTarget(12, 1, true)` returns `[element, tree]`,
 `tree.BIsGamepadInputSuppressed()` is false, and the focused node is well formed (§3).
 
-## 7. Verifying without a controller, honestly
+## 7. Inside a modal dialog (`showModal`, Steam dialog)
+
+A Steam dialog is its own navigation tree (`ModalDialogOverlay_Modal_<n>`) and it becomes the active
+focus tree, so its buttons are reachable by construction — but the dialog's content container is
+**vertical** (measured: `GetLayout() = 1`, `flexDirection: column`). A plain `div` footer is not a nav
+node, so the buttons become direct children of that vertical container: only up/down move between
+them, left/right does nothing, and the user reports "the pad cannot select the buttons".
+
+Wrap the footer in a horizontal `Focusable`:
+
+```tsx
+<Focusable noFocusRing style={{ display: "flex", flexDirection: "row", gap: 8, justifyContent: "flex-end" }}>
+  {...buttons, each its own Focusable with onActivate...}
+</Focusable>
+```
+
+Measured after the change: `Refresh -> right: Warmed -> right: Close -> A: dialog closed, focus back on
+the page`. `GetLayout()` of the group then reports the horizontal value (the play bar's icon row, also
+horizontal, reports `2`).
+
+## 8. Verifying without a controller, honestly
 
 | Question | How to answer |
 | --- | --- |
@@ -133,7 +153,7 @@ If presses do nothing: check `manager.GetEventTarget(12, 1, true)` returns `[ele
 
 A screenshot is not a proof of reachability; a walk is.
 
-## 8. Checklist before shipping a control
+## 9. Checklist before shipping a control
 
 - [ ] element inside the native row (not a fixed overlay outside it)
 - [ ] node adopted from a sibling of the same row, `GetFocusable()` ≠ `none`, focus stores are objects
@@ -142,5 +162,7 @@ A screenshot is not a proof of reachability; a walk is.
 - [ ] `:focus` style painted by the plugin, with the glyph forced dark (the native class paints the
       svg white - a plain `color` change leaves a white glyph on the white focused background)
 - [ ] `vgp_onok` listener wired: A must run the action, the mouse click alone is not enough
+- [ ] inside a dialog: the button row is a horizontal `Focusable`, and the walk
+      `<first button> right right -> A` has been replayed there too
 - [ ] walk replayed with `pad-sim.mjs` and pasted in the log/commit message
 - [ ] `AGENTS.md` §3c/§3d updated with any new measured fact

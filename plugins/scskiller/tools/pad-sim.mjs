@@ -117,7 +117,11 @@ const line = (entry) =>
     ? `${entry.scskiller ? "[SCSKILLER] " : ""}${entry.label || entry.text || entry.cls} @${entry.x},${entry.y}`
     : "no focus";
 
-if (args[0] === "--from") {
+const isButton = (name) => BUTTONS[name] !== undefined;
+
+if (args[0] === "--focus" || args.length === 0) {
+  console.log(line(await evaluate(FOCUS)));
+} else if (args[0] === "--from") {
   const [, name, ...rest] = args;
   const moved = await evaluate(FOCUS_BY_NAME(name));
   if (moved !== "ok") {
@@ -130,15 +134,17 @@ if (args[0] === "--from") {
     const entry = await press(step);
     console.log(`  ${step} -> ${line(entry)}`);
   }
-} else if (args[0] === "--walk" || args.length) {
-  const steps = args[0] === "--walk" ? args.slice(1) : [args[0], ...Array(Math.max(0, Number(args[1] ?? 1) - 1)).fill(args[0])];
+} else {
+  const walk = args[0] === "--walk" ? args.slice(1) : args;
+  // `right 3` means three presses; `right left ok` is a walk
+  const steps = walk.length === 2 && isButton(walk[0]) && /^\d+$/.test(walk[1])
+    ? Array(Number(walk[1])).fill(walk[0])
+    : walk;
   console.log(`start: ${line(await evaluate(FOCUS))}`);
   for (const step of steps) {
     const entry = await press(step);
     console.log(`  ${step} -> ${line(entry)}`);
   }
-} else {
-  console.log(line(await evaluate(FOCUS)));
 }
 socket.close();
 process.exit(0);
