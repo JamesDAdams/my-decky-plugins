@@ -28,6 +28,14 @@ const BUTTON: CSSProperties = {
   flex: "0 0 auto",
 };
 
+/**
+ * The dialog buttons are drawn by us, so their focused state must be painted by us too: without a
+ * visible change a controller user sees nothing move and concludes the pad does not work (measured:
+ * the focus did move Refresh -> Compile -> Close, but `noFocusRing` left the buttons identical).
+ */
+const BTN_CLASS = "scsk-mbtn";
+const BTN_CSS = `.${BTN_CLASS}:focus{background:#e6e8ea!important;color:#16191d!important;outline:none}`;
+
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div style={ROW}>
@@ -136,6 +144,7 @@ export function ScskModal({ appid, onClose }: { appid: number; onClose: () => vo
   return (
     <ModalShell onCancel={onClose} bDisableBackgroundDismiss={false}>
       <div style={{ minWidth: 520, maxWidth: 640, padding: "4px 2px 0" }}>
+        <style>{BTN_CSS}</style>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 10 }}>
           <span style={{ color, display: "flex" }}>
             <ScskIcon size={28} />
@@ -222,12 +231,13 @@ export function ScskModal({ appid, onClose }: { appid: number; onClose: () => vo
           style={{ display: "flex", flexDirection: "row", gap: 8, justifyContent: "flex-end", alignItems: "center", marginTop: 14 }}
         >
           {busy ? <span style={{ fontSize: 12, opacity: 0.7 }}>working...</span> : null}
-          <Focusable noFocusRing onActivate={refresh} style={{ ...BUTTON, opacity: busy ? 0.6 : 1 }}>
+          <Focusable noFocusRing className={BTN_CLASS} onActivate={refresh} style={{ ...BUTTON, opacity: busy ? 0.6 : 1 }}>
             <span>Refresh</span>
           </Focusable>
           {running ? (
             <Focusable
               noFocusRing
+              className={BTN_CLASS}
               onActivate={() => cancelCompile()}
               style={{ ...BUTTON, background: "rgba(224,82,82,0.85)" }}
             >
@@ -236,13 +246,14 @@ export function ScskModal({ appid, onClose }: { appid: number; onClose: () => vo
           ) : (
             <Focusable
               noFocusRing
+              className={BTN_CLASS}
               onActivate={compile}
               style={{ ...BUTTON, background: blocked ? "rgba(255,255,255,0.12)" : "#1a9fff" }}
             >
               <span>{blocked ? (warmed ? "Warmed" : "Not compilable") : "Compile"}</span>
             </Focusable>
           )}
-          <Focusable noFocusRing onActivate={onClose} style={BUTTON}>
+          <Focusable noFocusRing className={BTN_CLASS} onActivate={onClose} style={BUTTON}>
             <span>Close</span>
           </Focusable>
         </Focusable>

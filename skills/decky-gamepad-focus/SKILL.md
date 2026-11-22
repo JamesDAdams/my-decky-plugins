@@ -141,6 +141,16 @@ Measured after the change: `Refresh -> right: Warmed -> right: Close -> A: dialo
 the page`. `GetLayout()` of the group then reports the horizontal value (the play bar's icon row, also
 horizontal, reports `2`).
 
+**And paint the focused button.** A `Focusable` with `noFocusRing` and a custom `style` looks exactly
+the same focused and unfocused: the pad does move (the focus log proves it), but the user reports "the
+pad cannot select the buttons". Give the buttons a class and a rule:
+
+```css
+.scsk-mbtn:focus { background:#e6e8ea !important; color:#16191d !important; outline:none }
+```
+
+That is the difference between "it works" and "it works and you can see it".
+
 ## 8. Verifying without a controller, honestly
 
 | Question | How to answer |
