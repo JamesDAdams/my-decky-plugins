@@ -326,7 +326,7 @@ powershell -ExecutionPolicy Bypass -File .\build.ps1
 
 Le script enchaîne : `tsc --noEmit`, build rollup, **contrôle ASCII du bundle** (Decky sert le module
 sans charset : un seul caractère accentué s'affiche `â€"` dans l'UI), tests, copie dans
-`%USERPROFILE%\homebrew\plugins\SCSKiller`, puis zip dans `decky/releases/` avec des entrées en `/`
+`%USERPROFILE%\homebrew\plugins\SCSKiller`, puis zip dans `releases/` avec des entrées en `/`
 (`Compress-Archive` écrit des `\`, que l'installeur Decky ne sait pas extraire).
 
 Après une modification de `main.py`, **redémarrez Steam** : Decky ne recharge pas le processus Python

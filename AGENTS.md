@@ -167,6 +167,7 @@ every entry uses `/`.
 - `docs/decky-internals.md` — Decky/Steam architecture, CEF windows, `executeInTab` bridge, QAM.
 - `docs/troubleshooting.md` — detailed diagnosis matrix with evidence.
 - `docs/qam-shortcut-plugin.md` — case study of the `Ctrl+2` plugin (what failed and why).
+- `docs/workshop.md` — the workshop index (layout, skills, tooling, plugins).
 
 **Tooling**: `tools/` (CDP) — see `tools/README.md`. Plugin-specific helpers live next to their plugin
 (`plugins/scskiller/tools/cdp-eval.mjs`, `cdp-reload.mjs`, `cdp-inject.mjs`, `cdp-click.mjs`,
