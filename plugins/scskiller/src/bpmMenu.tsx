@@ -65,6 +65,12 @@ const INSTALL = `(() => {
     control.setAttribute("tabindex", "0");
     // the clone copies the aria-label of "Downloads"
     control.setAttribute("aria-label", "SCSKiller");
+    // and, when Downloads happens to be the active page, its blue "current page" marker is copied
+    // with it: this entry is not the active page, so any child that is neither the icon nor the
+    // label is dropped (measured: the leftover bar is a div with no text, no svg, inline 10px width)
+    for (const child of Array.from(control.children)) {
+      if (!child.querySelector("svg") && !(child.textContent || "").trim()) child.remove();
+    }
     const text = labelIn(control);
     if (!text) return "no-label";
     text.textContent = "SCSKiller";
@@ -92,25 +98,18 @@ const INSTALL = `(() => {
     }
     // A clone has no React state: Steam paints its own items from state, so a focused clone looks
     // exactly like an unfocused one and the user reports "I cannot select SCSKiller". The look is
-    // painted here, from the measured values of a focused native item (background
-    // rgba(255,255,255,0.2), white label, blue #1a9fff bar at the left).
+    // painted here from the measured values of a focused native item that is NOT the current page:
+    // background rgba(255,255,255,0.1), white label and glyph, and nothing else. The blue bar of
+    // the rail marks the ACTIVE page (a separate Steam class), so a clone must not draw it - doing
+    // that showed a blue bar on SCSKiller while another page was open (reported 2026-11-22).
     clone.classList.remove("gpfocus", "gpfocuswithin");
     control.classList.remove("gpfocus", "gpfocuswithin");
     const label = text.parentElement;
-    let bar = null;
     const paint = (on) => {
-      control.style.background = on ? "rgba(255,255,255,0.2)" : "";
+      control.style.background = on ? "rgba(255, 255, 255, 0.1)" : "";
       // the glyph uses fill="currentColor", so the white has to reach the item itself
       control.style.color = on ? "#ffffff" : "";
       if (label) label.style.color = on ? "#ffffff" : "";
-      if (on && !bar) {
-        bar = document.createElement("div");
-        bar.style.cssText = "width:10px;height:50%;flex:0 0 auto;background:#1a9fff;border-radius:1px";
-        control.insertBefore(bar, control.firstChild);
-      } else if (!on && bar) {
-        bar.remove();
-        bar = null;
-      }
     };
     control.addEventListener("focus", () => paint(true));
     control.addEventListener("blur", () => paint(false));
