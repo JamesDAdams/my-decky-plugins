@@ -17,9 +17,9 @@ pont, pas une copie.
 
 ## Installation
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.2.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.4.zip)
 
-1. Téléchargez le zip (`SCSKiller-decky-0.9.2.zip`).
+1. Téléchargez le zip (`SCSKiller-decky-0.9.4.zip`).
 2. Decky Loader → icône engrenage → **Install from zip file** → sélectionnez ce zip.
 3. Redémarrez Steam : Decky recharge le frontend du plugin, mais son backend Python ne démarre qu'au
    redémarrage de Steam.
@@ -35,12 +35,11 @@ Installation manuelle : copiez le dossier dans `~/homebrew/plugins/`
 manette**, avec le badge SCSKiller et une pastille verte (compilé) ou rouge (à compiler).
 
 > Comment : le JavaScript des plugins Decky tourne dans le contexte JS partagé de Steam, une page de
-> 1x1 px qui ne peut pas interroger le DOM visible. Le bouton est dessiné dans **sa propre couche
-> fixe** ajoutée à `document.body` (jamais dans une rangée rendue par Steam, ce qui casserait la
-> réconciliation React de cette rangée) et positionné d'après le rectangle de l'icône manette. Il
-> reçoit un **nœud de navigation dans le groupe de focus de la rangée**, copié de l'icône `Manage` de
-> cette rangée, en retirant les deux propriétés qui répondent pour le *mauvais* élément
-> (`fnCanTakeFocus`, `childFocusDisabled`) : mesuré, un nœud copié qui les garde affiche
+> 1x1 px qui ne peut pas interroger le DOM visible. Le bouton est une **copie de l'icône `Manage` de la
+> rangée** — même élément, mêmes classes, même boîte 48x48 — insérée en premier enfant de la rangée : il
+> reprend donc l'aspect natif, le rythme de 10 px et il défile avec la barre Play. Il reçoit une copie
+> du **nœud de navigation** de cette icône, en retirant les deux propriétés qui répondent pour l'*autre*
+> élément (`fnCanTakeFocus`, `childFocusDisabled`) : mesuré, un nœud copié qui les garde affiche
 > `GetFocusable() = "none"` et la manette passe à côté.
 
 Un clic dessus ouvre une **fenêtre de stats**, avec les chiffres que SCSKiller affiche lui-même :
@@ -284,19 +283,20 @@ tools/                   scripts CDP (eval, reload, click, key, shot) pour véri
 build.ps1                typecheck + build + contrôle ASCII + tests + install + zip
 ```
 
-Pourquoi le bouton vit dans sa propre couche avec un nœud copié : le JavaScript du plugin tourne dans le
-contexte partagé de Steam, une page de 1x1 px qui ne peut pas interroger le DOM visible, et Big Picture
-déplace le focus manette à travers les **nœuds de navigation** que Steam enregistre pour ses propres
-composants `Focusable`. Un élément React inséré par un patch de route a la bonne apparence, mais son
-nœud tombe sous le conteneur de page (vérifié : parent `_1SvpjsckP9cPRxO6gCBHrw` au lieu de la rangée
-d'icônes `_1thLDT_28YIf6OkgIb6n-4`), et la manette passe à côté. Ajouter du balisage *dans* la rangée est
-pire : c'est une liste d'enfants React, la réconciliation suivante de l'arbre Steam peut déplacer ou
-perdre des éléments et toute la rangée devient inatteignable (mesuré : après une telle insertion, aucune
-des trois icônes n'était focusable depuis Play). Le bouton est donc dessiné hors des conteneurs Steam,
-dans une couche fixe, au rectangle de l'icône manette moins sa propre largeur et l'écart de 10 px, et
-seul son **nœud** rejoint le groupe de focus de la rangée : une copie du nœud de l'icône `Manage` de
-cette rangée, sans `fnCanTakeFocus` ni `childFocusDisabled`, car un nœud copié qui les garde répond pour
-l'*autre* élément et affiche `GetFocusable() = "none"`.
+Pourquoi le bouton est une copie d'une icône native : le JavaScript du plugin tourne dans le contexte
+partagé de Steam, une page de 1x1 px qui ne peut pas interroger le DOM visible, et Big Picture déplace le
+focus manette à travers les **nœuds de navigation** que Steam enregistre pour ses propres composants
+`Focusable`. Un élément React inséré par un patch de route a la bonne apparence, mais son nœud tombe sous
+le conteneur de page (vérifié : parent `_1SvpjsckP9cPRxO6gCBHrw` au lieu de la rangée d'icônes
+`_1thLDT_28YIf6OkgIb6n-4`), et la manette passe à côté. La rangée d'icônes est elle-même un groupe de
+focus dont les enfants sont des nœuds enregistrés : le bouton est donc une copie de l'icône `Manage` de
+cette rangée — même élément, mêmes classes, même boîte 48x48, premier enfant de la rangée — et il porte
+une copie du nœud de cette icône, sans `fnCanTakeFocus` ni `childFocusDisabled`. Ce dernier point est ce
+qui a fait échouer toutes les tentatives précédentes : un nœud copié qui les garde répond pour l'*autre*
+élément, affiche `GetFocusable() = "none"`, et le D-pad l'ignore — et un seul enfant « none » dans un
+groupe suffisait à rendre toute la rangée inatteignable depuis Play. Vérifié à la manette : les trois
+icônes de la rangée sont de nouveau atteignables et le bouton suit la barre Play quand la page défile
+(le bouton et l'icône manette passent tous deux de y=367 à y=247 sur un défilement de 120 px).
 
 Côté backend :
 

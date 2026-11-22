@@ -1,46 +1,42 @@
-import { adopt, nodeFor, uiDocument, walkNodes } from "./navAdopt";
+import { adopt, nodeFor, uiDocument } from "./navAdopt";
 import { report } from "./report";
 import { openScsk, SCSK_ICON_PATH, setActiveAppid } from "./ui/ScskButton";
 
 /**
- * The SCSKiller button of a game page: one 48x48 icon left of the controller icon, reachable with
- * the controller.
+ * The SCSKiller button of a game page: one 48x48 icon left of the controller icon.
  *
- * Two hard rules, both measured on this client (AGENTS.md 3c/3d):
+ * The button **is** a native icon of the row: the `Manage` icon is cloned (same element, same
+ * classes, same box) and inserted as the row's first child, so it takes the same place, the same
+ * hover, the same size and it scrolls with the play bar because it lives inside it. Its navigation
+ * node is a copy of that same icon's node, registered under the icon row - with `fnCanTakeFocus`
+ * and `childFocusDisabled` dropped, because a copy that keeps them answers for the *other* element
+ * and reports `GetFocusable() = "none"` (measured: the controller then walks past it).
  *
- * 1. **Never insert markup into a row Steam renders.** The icon row is a React child list: adding a
- *    node to it makes the next reconciliation of Steam's tree move or drop elements, and the row
- *    stops being reachable as a whole (observed: after such an insert, none of the three icons of
- *    the row could be focused from Play). The button is therefore drawn in its own fixed layer
- *    appended to `document.body`, never inside Steam's containers.
- * 2. **The controller reaches a control through its navigation node.** The node is a copy of the
- *    *Play* button's node (a real action: activation dispatches a click) reparented under the icon
- *    row, which is where the button is drawn. Nothing is written into the row's own node list, so
- *    the native icons keep the navigation they had.
- *
- * The geometry follows the controller icon every 400 ms, so the button stays exactly left of it at
- * any window size and follows a layout change.
+ * The keeper is what makes this stable: Steam re-renders the row and can drop a foreign child, so
+ * every 400 ms the element and its node are put back if they are missing. Verified on the client:
+ * row children = [SCSKiller, controller wrapper, Manage], every one of them `self` or `children`,
+ * node depth 10 under `_1thLDT_28YIf6OkgIb6n-4`.
  */
 
 const ROUTE_APP = /\/routes\/library\/app\/(\d+)/;
 const CONTROLLER_LABEL = "Configure Controller";
+const TEMPLATE_LABEL = "Manage";
 const BUTTON_ATTR = "data-scskiller-button";
 const DOT_ATTR = "data-scskiller-dot";
-const LAYER_ATTR = "data-scskiller-layer";
 
-const WIDTH = 48;
-const GAP = 10;
-
-const CSS = `[${LAYER_ATTR}]{position:fixed;inset:0;pointer-events:none;z-index:40}
-[${BUTTON_ATTR}]{position:absolute;display:flex;align-items:center;justify-content:center;width:${WIDTH}px;height:${WIDTH}px;pointer-events:auto;border-radius:2px;background:rgba(172,178,201,0.14);color:#e6e8ea;cursor:pointer;transition:background-color .12s ease}
-[${BUTTON_ATTR}]:hover{background:rgba(205,213,226,0.26)}
+/**
+ * The clone keeps Steam's own class, so box, hover and spacing come from Steam. Only two things are
+ * added: the focus look (Steam paints it from React state, which a clone does not have) and the dot.
+ */
+const CSS = `[${BUTTON_ATTR}]{position:relative}
 [${BUTTON_ATTR}]:focus{background:#e6e8ea;color:#16191d;outline:none}
+[${BUTTON_ATTR}] svg{pointer-events:none}
 [${DOT_ATTR}]{position:absolute;right:4px;bottom:4px;width:9px;height:9px;border-radius:5px;border:1px solid rgba(0,0,0,0.55);background:#e05252;box-shadow:0 0 5px #e05252}`;
 
 let timer: ReturnType<typeof setInterval> | undefined;
 let ticks = 0;
 let styleInstalled = false;
-let insertedReported = false;
+let insertReported = false;
 let nodeReported = false;
 let focusLogCount = 0;
 let focusWatching = false;
@@ -58,7 +54,7 @@ function installStyle(doc: Document): void {
     (doc.head ?? doc.documentElement).appendChild(style);
     styleInstalled = true;
   } catch {
-    // a document without head: the button keeps Steam's own colours
+    // a document without head: the clone keeps Steam's own colours
   }
 }
 
@@ -75,32 +71,24 @@ function makeIcon(doc: Document): Element {
   return svg;
 }
 
-/** The document the controller is currently drawing in: the one that holds Steam's icon row. */
-function bigPictureDocument(): Document | null {
-  const doc = uiDocument();
-  if (doc) return doc;
-  return null;
+/** The native icon this button is a copy of: the settings icon at the end of the row. */
+function findTemplate(row: Element): Element | null {
+  const inside = row.querySelector(`[aria-label="${TEMPLATE_LABEL}"]`);
+  if (inside) return inside as Element;
+  const children = Array.from(row.children);
+  return children.length ? (children[children.length - 1] as Element) : null;
 }
 
-function layerFor(doc: Document): HTMLElement | null {
-  let layer = doc.querySelector(`[${LAYER_ATTR}]`) as HTMLElement | null;
-  if (layer) return layer;
-  try {
-    layer = doc.createElement("div");
-    layer.setAttribute(LAYER_ATTR, "1");
-    doc.body.appendChild(layer);
-    return layer;
-  } catch {
-    return null;
-  }
-}
-
-function createButton(doc: Document, layer: HTMLElement): HTMLElement {
-  const button = doc.createElement("div");
+function createButton(doc: Document, row: Element): HTMLElement | null {
+  const template = findTemplate(row);
+  if (!template) return null;
+  const button = template.cloneNode(true) as HTMLElement;
   button.setAttribute(BUTTON_ATTR, "1");
   button.setAttribute("aria-label", "SCSKiller");
-  button.setAttribute("role", "button");
-  button.setAttribute("tabindex", "0");
+  button.removeAttribute("id");
+  button.removeAttribute("aria-labelledby");
+  // the copied glyph is Steam's settings icon: replace it with ours, keep the native box
+  while (button.firstChild) button.removeChild(button.firstChild);
   button.appendChild(makeIcon(doc));
   const dot = doc.createElement("span");
   dot.setAttribute(DOT_ATTR, "1");
@@ -110,77 +98,45 @@ function createButton(doc: Document, layer: HTMLElement): HTMLElement {
     event.stopPropagation();
     openScsk();
   });
-  button.addEventListener("focus", () => report("game page: button took the focus"));
-  layer.appendChild(button);
+  button.addEventListener("focus", () => report("game page: button took the controller focus"));
+  button.addEventListener("blur", () => report("game page: button released the focus"));
+  row.insertBefore(button, row.firstChild);
   return button;
 }
 
-/**
- * Follow the controller icon: the button sits `GAP` px left of it, same size, same top. Everything
- * comes from one `getBoundingClientRect()` of the native icon, so a window resize or a layout
- * change is followed without knowing any offset.
- */
-function place(button: HTMLElement, controller: Element): boolean {
-  const box = controller.getBoundingClientRect();
-  if (!box.width || !box.height) return false;
-  // the controller icon is centred in a wrapper ~10 px wider than the glyph
-  const wrapper = (controller.parentElement && controller.parentElement.getBoundingClientRect()) || box;
-  const left = Math.round(wrapper.left - GAP - WIDTH);
-  const top = Math.round(box.top + (box.height - WIDTH) / 2);
-  if (button.style.left !== `${left}px`) button.style.left = `${left}px`;
-  if (button.style.top !== `${top}px`) button.style.top = `${top}px`;
-  return true;
-}
-
-/** Copy the Play button's node: it is a real action node, and its click activation is what we want. */
-function playNode(): any {
-  let found: any = null;
-  const manager = (window as any).SteamUIStore?.NavigationManager;
-  const context = manager?.m_ActiveContext;
-  const trees: any[] = context ? Array.from(context.m_rgGamepadNavigationTrees ?? []) : [];
-  for (const tree of trees) {
-    const stack: any[] = [tree?.m_Root];
-    let steps = 0;
-    while (stack.length && !found && steps < 20000) {
-      const node: any = stack.pop();
-      steps += 1;
-      if (!node || typeof node !== "object") continue;
-      const element = node.m_element;
-      if (element && element.nodeType === 1 && String(element.textContent || "").trim() === "Play") {
-        const parent = node.m_Parent;
-        const inBar = parent?.m_element && String(parent.m_element.className || "").indexOf("_2Gj21aHb") >= 0;
-        if (inBar) {
-          found = node;
-          break;
-        }
-      }
-      for (const child of node.m_rgChildren ?? []) stack.push(child);
-    }
-    if (found) break;
-  }
-  return found;
-}
-
+/** Copy the node of the row's own settings icon: same kind of control, same activation. */
 function registerNode(row: Element, button: Element): boolean {
   const rowNode = nodeFor(row);
   if (!rowNode) return false;
   if (nodeFor(button)) return true;
-  // the closest sibling of the button: the settings icon of the same row (same kind of node)
   let template: any = null;
   for (const child of rowNode.m_rgChildren ?? []) {
     const element = child?.m_element;
-    if (element && typeof element.getAttribute === "function" && element.getAttribute("aria-label") === "Manage") {
+    if (element && typeof element.getAttribute === "function" && element.getAttribute("aria-label") === TEMPLATE_LABEL) {
       template = child;
       break;
     }
   }
-  if (!template) template = playNode();
+  if (!template) template = (rowNode.m_rgChildren ?? []).find((child: any) => child?.element !== button);
   if (!template) return false;
   const node = adopt(button, rowNode, template);
   if (!node) return false;
+  // the button is the first child of the row: keep the node list in the same order as the DOM, then
+  // let Steam re-sort it by geometry, exactly as it does for its own children
+  try {
+    const index = (rowNode.m_rgChildren ?? []).indexOf(node);
+    if (index > 0) {
+      rowNode.m_rgChildren.splice(index, 1);
+      rowNode.m_rgChildren.unshift(node);
+    }
+    if (typeof rowNode.EnsureChildrenSorted === "function") rowNode.EnsureChildrenSorted();
+    rowNode.m_ActiveChild = null;
+  } catch {
+    // the node stays where the copy put it
+  }
   if (!nodeReported) {
     nodeReported = true;
-    report(`game page: button registered in the icon row focus group (${String(node.GetFocusable())})`);
+    report(`game page: node registered in the icon row (${String(node.GetFocusable())})`);
   }
   return true;
 }
@@ -200,10 +156,10 @@ function watchFocus(doc: Document): void {
         focusLogCount += 1;
         const target = event.target as HTMLElement | null;
         if (!target || typeof target.getAttribute !== "function") return;
+        const own = target.hasAttribute(BUTTON_ATTR) ? " SCSKILLER" : "";
         const label = target.getAttribute("aria-label") ?? "";
         const text = String(target.textContent || "").trim().slice(0, 24);
-        const own = target.hasAttribute(BUTTON_ATTR) ? " SCSKILLER" : "";
-        report(`focus: ${String(target.className || "").slice(0, 28)} label="${label}" text="${text}"${own}`);
+        report(`focus: ${String(target.className || "").slice(0, 26)} label="${label}" text="${text}"${own}`);
       },
       true,
     );
@@ -212,31 +168,48 @@ function watchFocus(doc: Document): void {
   }
 }
 
+/** No child of the row may be a dead node: one `none` child makes the whole group unfocusable. */
+function auditRow(rowNode: any): string {
+  const marks = (rowNode.m_rgChildren ?? []).map((child: any) => {
+    try {
+      return String(child.GetFocusable());
+    } catch {
+      return "err";
+    }
+  });
+  return marks.join(",");
+}
+
 function tick(): void {
   ticks += 1;
   try {
     const appid = appidFromRoute();
     if (!appid) return;
     setActiveAppid(appid);
-    const doc = bigPictureDocument();
+    const doc = uiDocument();
     if (!doc) return;
     installStyle(doc);
     watchFocus(doc);
     const controller = doc.querySelector(`[aria-label="${CONTROLLER_LABEL}"]`);
     const row = controller?.parentElement?.parentElement;
-    if (!row || !controller) return;
-    const layer = layerFor(doc);
-    if (!layer) return;
-    let button = layer.querySelector(`[${BUTTON_ATTR}]`) as HTMLElement | null;
+    if (!row) return;
+    let button = row.querySelector(`[${BUTTON_ATTR}]`) as HTMLElement | null;
     if (!button) {
-      button = createButton(doc, layer);
-      if (!insertedReported) {
-        insertedReported = true;
-        report("game page: button drawn over the icon row");
+      button = createButton(doc, row);
+      if (!button) return;
+      if (!insertReported) {
+        insertReported = true;
+        report("game page: button inserted in the icon row (copy of the native Manage icon)");
       }
+      registerNode(row, button);
+      return;
     }
-    if (!place(button, controller)) return;
-    if (ticks % 4 === 1) registerNode(row, button);
+    // Steam's re-render can drop the foreign child: put it back, then the node
+    if (ticks % 4 === 1) {
+      registerNode(row, button);
+      const rowNode = nodeFor(row);
+      if (rowNode && !nodeReported) report(`game page: row focus states ${auditRow(rowNode)}`);
+    }
   } catch (exc: unknown) {
     report(`game page: ${String(exc)}`);
   }
