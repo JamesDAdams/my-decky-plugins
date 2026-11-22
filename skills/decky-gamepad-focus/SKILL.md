@@ -57,6 +57,8 @@ Surface by surface:
 | QAM list rows (one line + one button) | wrap **each row** in a horizontal `Focusable` (nested `Focusable`s are fine, contrary to an older note: measured node `GetFocusable() = "children"`, `GetLayout() = 2`, children = `[label, button]`); Up/Down then walks the rows, Right enters the row | flattened siblings: measured 40 children under one vertical container, so Down went label → button → next label (reported as "down should change game, right should reach Compile") |
 | Modal dialog (`showModal`) | footer = horizontal `Focusable`, one `Focusable` per button, `:focus` painted (§7) | only up/down moves, selection invisible |
 | Injected DOM (icon row of another window, top bar, overlay, account button) | the injected code has no `SteamUIStore`: the plugin context must adopt the node from a native neighbour **and** the injected code must paint its own focus + answer `vgp_onok` (measured: the account-page clone was reachable but looked identical focused, and A did nothing, because a clone has neither React state nor a Focusable handler) | mouse-only control, or a control that works and looks dead |
+| Overlay that repaints a native control (game page Play/Resume) | when the plugin owns the control's background it must also paint the focused state: measured, a focused play button is `rgb(89,191,64)` (Focusable green) | the pad is on it and nothing changes ("you cannot tell you are on it") |
+| Injected control inside a native row (compile overlay's Cancel) | insert it **in flow** in the row (climb to the ancestor whose `flexDirection` is `row` and whose text holds `LAST PLAYED`), give it `tabindex="0"`, wire `vgp_onok`, then `adopt()` it under that row's node | a `position:fixed` box is skipped by the traversal; without `tabindex` Steam moves the nav focus but never focuses the element, so its painting never runs |
 | Left rail entry (DOM clone in `MainMenu_uid*`) | `adopt()` the **`[role="menuitem"]` inside** the injected clone (that is the element Steam focuses, not the wrapper), paint its focus, answer `vgp_onok`; a focused native item that is **not** the current page is `background rgba(255,255,255,0.1)` + white label/glyph and nothing else - the blue bar marks the **active page**, so a clone must not draw it (and a clone taken while "Downloads" was active copies that bar: drop every child that is neither icon nor label) | focus lands on a row that has no handler: grey, and A silent - or a blue bar on a page that is not open |
 
 ## 3. Why a plugin control usually is not reachable
@@ -242,6 +244,8 @@ A surface is done when all of these are true — not when it compiles, and not w
       action, and the output is pasted in the commit/summary
 - [ ] a list gives one press per row (Up/Down) and reaches the row's button with Right/Left
 - [ ] the left-rail entry is walked **and activated** (`ok` changes the route), not just focused
+- [ ] an overlay that repaints a native control paints the focused state too (`rgb(89,191,64)` for the
+      play button), and every injected button is in flow in its row, with `tabindex="0"` and `vgp_onok`
 - [ ] the log shows `focus: ...` lines for the surface during the walk
 - [ ] anything still mouse-only is written down (file + line) instead of being quietly shipped
 

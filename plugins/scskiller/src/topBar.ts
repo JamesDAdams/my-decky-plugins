@@ -311,11 +311,34 @@ const INSTALL = `(() => {
         boxOriginal: button.style.backgroundColor || "",
         boxBg: "rgba(220, 222, 223, 0.17)",
         hover: false,
+        // the gamepad focus lands on Steam's own button (document.activeElement): our overlay
+        // paints the box, so it has to paint THAT state too or the selection is invisible
+        // (reported: "on Resume there is no highlight, you cannot tell you are on it")
+        focused: document.activeElement === button,
       };
       window.__scskPlayState = state;
+      if (!button.__scskFocusBound) {
+        button.__scskFocusBound = true;
+        button.addEventListener("focus", () => {
+          const current = window.__scskPlayState;
+          if (!current) return;
+          current.focused = true;
+        });
+        button.addEventListener("blur", () => {
+          const current = window.__scskPlayState;
+          if (!current) return;
+          current.focused = false;
+        });
+      }
     }
     if (state.box) {
-      const wanted = state.hover ? "rgba(220, 222, 223, 0.26)" : state.boxBg;
+      // measured on a page without this overlay: Steam paints a focused play button
+      // rgb(89, 191, 64), the same green as a Focusable, with its white glyph and label
+      const wanted = state.focused
+        ? "rgb(89, 191, 64)"
+        : state.hover
+          ? "rgba(220, 222, 223, 0.26)"
+          : state.boxBg;
       if (state.box.style.backgroundColor !== wanted) state.box.style.backgroundColor = wanted;
     }
 
@@ -330,41 +353,82 @@ const INSTALL = `(() => {
       document.body.appendChild(info);
     }
     const columnWidth = innerWidth >= 1100 ? 160 : 130;
-    // the cancel button is glued to the pause button (no gap), then 16px before the column,
-    // then the 20px Steam puts between two stat columns
-    const cancelLeft = Math.round(rect.right);
     const cancelSize = 48;
-    const columnLeft = Math.round(cancelLeft + cancelSize + 16);
-    // the cancel button: Steam's own action-icon box, an X glyph
+    // The cancel button is a real in-flow child of Steam's play bar row, right after the Play
+    // group: a position:fixed box outside the row is skipped by the gamepad traversal, so the
+    // controller could not reach it (reported 2026-11-22). In flow it also takes its own space,
+    // and the plugin adopts a navigation node for it (gamepadFix.ts).
     let cancel = document.querySelector("[data-scsk-cancel]");
     if (!cancel) {
       cancel = document.createElement("div");
       cancel.setAttribute("data-scsk-cancel", "1");
       cancel.setAttribute("title", "Cancel compile");
       cancel.setAttribute("aria-label", "Cancel compile");
+      // without tabindex Steam moves the navigation focus to the adopted node but never focuses
+      // the element itself, so its focus/blur painting never runs (measured: activeElement stayed
+      // on Play while the tree's lastFocusNode was the cancel)
+      cancel.setAttribute("tabindex", "0");
+      cancel.style.outline = "none";
       cancel.style.cssText =
-        "position:fixed;z-index:50;box-sizing:border-box;display:flex;align-items:center;justify-content:center;" +
-        "border-radius:2px;background:rgba(172,178,201,0.14);color:#e6e8ea;cursor:pointer;" +
-        "transition:background-color 0.12s ease;";
+        "box-sizing:border-box;display:flex;align-items:center;justify-content:center;flex:0 0 auto;" +
+        "width:48px;height:48px;border-radius:2px;background:rgba(172,178,201,0.14);color:#e6e8ea;cursor:pointer;" +
+        "transition:background-color 0.12s ease, color 0.12s ease;";
+      const resting = () => {
+        cancel.style.background = "rgba(172,178,201,0.14)";
+        cancel.style.color = "#e6e8ea";
+      };
       cancel.addEventListener("mouseenter", () => {
         cancel.style.background = "rgba(205,213,226,0.26)";
       });
       cancel.addEventListener("mouseleave", () => {
-        cancel.style.background = "rgba(172,178,201,0.14)";
+        if (document.activeElement !== cancel) resting();
       });
-      cancel.addEventListener("click", (event) => {
-        event.stopPropagation();
+      // the focused look of Steam's own action icons: white box, dark glyph
+      cancel.addEventListener("focus", () => {
+        cancel.style.background = "#e6e8ea";
+        cancel.style.color = "#16191d";
+      });
+      cancel.addEventListener("blur", resting);
+      const press = (event) => {
+        if (event && event.stopPropagation) event.stopPropagation();
         window.__scskCancelClicks = (window.__scskCancelClicks || 0) + 1;
-      });
+      };
+      cancel.addEventListener("click", press);
+      // Steam activates the focused element by dispatching vgp_onok: without it the pad's A is
+      // silent on this button while the mouse click works
+      cancel.addEventListener("vgp_onok", press);
       document.body.appendChild(cancel);
     }
-    cancel.style.left = cancelLeft + "px";
-    cancel.style.top = Math.round(rect.top + (rect.height - cancelSize) / 2) + "px";
+    // The play bar row is the ancestor of the button that lays its children out in a row and also
+    // holds the "LAST PLAYED" stats column: climbing two levels is not enough (Steam wraps the
+    // button in a column group, and an insert there stacks the cancel UNDER it - measured).
+    const isPlayRow = (element) => {
+      if (!element) return false;
+      if (getComputedStyle(element).flexDirection !== "row") return false;
+      return /last played/i.test(element.textContent || "");
+    };
+    let row = button.parentElement;
+    for (let up = 0; up < 8 && row && row.parentElement; up++) {
+      if (isPlayRow(row.parentElement)) {
+        row = row.parentElement;
+        break;
+      }
+      row = row.parentElement;
+    }
+    let anchor = button;
+    while (anchor.parentElement && anchor.parentElement !== row) anchor = anchor.parentElement;
+    if (row && cancel.parentElement !== row) {
+      row.insertBefore(cancel, anchor.nextSibling);
+    }
     cancel.style.width = cancelSize + "px";
     cancel.style.height = cancelSize + "px";
     cancel.innerHTML =
       '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"' +
       ' stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
+    // the compile column starts 16px after the button now that it is in flow
+    const cancelBox = cancel.getBoundingClientRect();
+    const cancelLeft = Math.round(cancelBox.left || rect.right);
+    const columnLeft = Math.round((cancelBox.right || cancelBox.left + cancelSize) + 16);
     // the stats block is the ancestor of the "LAST PLAYED" label whose parent also holds
     // the play button: that is the flex item to push right
     let stats = state.stats;

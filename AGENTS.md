@@ -67,8 +67,9 @@ works** on the Steam client (verified through logs and CDP), not just code that 
     DOM in another window (it needs an adopted node + `vgp_onok`), the rail entry. A plain
     `<button>`/`div onClick` is not a navigation node; a `noFocusRing` control without its own
     `:focus` style is invisible to a couch user. The skill's §9 "definition of done" is the gate.
-    Known open gap (2026-11-22): the top-bar status badge and the compile overlay's Cancel are
-    injected DOM without nodes - they must be adopted like the game-page button.
+    Known open gap (2026-11-22): the top-bar status badge is injected DOM without a node - it must
+    be adopted like the game-page button. (The compile overlay's Cancel was fixed in 0.9.15: in flow
+    in the play bar row, adopted node, `tabindex="0"`, painted focus, `vgp_onok`.)
 
 ## 3. Measured facts (Windows, Steam + Decky 3, November 2026)
 
@@ -174,6 +175,9 @@ Going through the route patcher does **not** reach that row, and this is the imp
 | A QAM list needs **one horizontal group per row** | nested `Focusable`s do work (an older comment in `GameRow` claimed otherwise): wrapping the row in `<Focusable style={{display:"flex",flexDirection:"row"}}>` gives a node with `GetFocusable() = "children"`, `GetLayout() = 2`, children `[game (self), Compile (self)]` → measured `down: Dead by Daylight -> right: Compile -> left: row -> down: next game`. Before, the QAM's vertical container had **40 flat children** and Down walked label -> button -> next label |
 | A node whose element is **detached** freezes the whole group | measured: six `down` presses in the rail left the focus on `Home`; the offending node answered `GetFocusable() = "self"` with a `0,0` rect (its clone had been rebuilt). Prune **only your own** dead nodes (`element.isConnected === false` and inside a `[data-scsk-menu]` clone) from the group, then `adopt()` again. Do **not** re-sort the rail group by hand: moving the node next to its template and calling `EnsureChildrenSorted()` froze every direction (measured right after: `down` kept the focus on `Home`); dropping that step and letting `adopt()` append the node made the walk work again (`down x6 -> SCSKiller -> ok -> /routes/scskiller`). Steam resolves the order from the geometry |
 | A DOM-clone rail entry is focused on its **inner `[role="menuitem"]`** | the clone of the Downloads row can be a *wrapper*: `clone.matches('[role="menuitem"]')` is false and the focused element is `clone.querySelector('[role="menuitem"]')`. Listeners, `aria-label`, `vgp_onok` and the focus painting must go **there** (measured: otherwise the focus lands, the row stays grey and A does nothing) |
+| An overlay that owns a native control's background hides its focus | the game page's Play/Resume box is repainted inline by `topBar.ts` (`rgba(220,222,223,0.17)`), so Steam's focused look never shows. Measured on a page without the overlay: a focused play button is **`rgb(89, 191, 64)`** (Focusable green) with white glyph/label - the overlay now paints that when `document.activeElement === button` |
+| An adopted node needs `tabindex="0"` on its element | Steam moves the navigation focus to the node but only focuses the element when it is tab-stoppable: without it `document.activeElement` stayed on Play while the tree's `m_lastFocusNode` was the injected button, so the `focus`/`blur` painting never ran and the selection stayed invisible |
+| An injected control must be **in flow** inside the row it belongs to | the compile overlay's Cancel was a `position:fixed` box next to the play button: the traversal skips it. Inserted as a 48x48 child of the play bar row (climb until the ancestor whose `flexDirection` is `row` and whose text holds `LAST PLAYED` - two levels up lands in a **column** wrapper and stacks it under the button), then `adopt()` it under that row's node |
 
 **The D-pad can be simulated** — `plugins/scskiller/tools/pad-sim.mjs`:
 

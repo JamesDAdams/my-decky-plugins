@@ -1,5 +1,5 @@
 import { report } from "./report";
-import { adopt, nodeFor, walkNodes, type NavNode } from "./navAdopt";
+import { adopt, nodeFor, uiDocument, walkNodes, type NavNode } from "./navAdopt";
 
 /**
  * Keep the controls this plugin draws inside Steam's gamepad focus groups.
@@ -87,6 +87,38 @@ function fixMenuEntry(): void {
   if (adopt(item, parent, template)) say("menu: entry adopted into the sidebar focus group");
 }
 
+function fixPlayBarCancel(): void {
+  // the compile overlay's Cancel ("x") next to the Play/Resume button: injected DOM in the visible
+  // window, so it needs an adopted node or the controller cannot move onto it (reported 2026-11-22)
+  const doc = uiDocument();
+  if (!doc) return;
+  const cancel = doc.querySelector("[data-scsk-cancel]") as HTMLElement | null;
+  if (!cancel || !cancel.parentElement) return;
+  const parent = nodeFor(cancel.parentElement);
+  if (!parent) return;
+  const manage = doc.querySelector('[aria-label="Manage"]') as HTMLElement | null;
+  const template = manage ? nodeFor(manage) : null;
+  if (!template) return;
+
+  // a rebuilt overlay leaves a node on a detached element, which stalls the row
+  const children: NavNode[] = Array.isArray(parent.m_rgChildren) ? parent.m_rgChildren : [];
+  for (const node of [...children]) {
+    const element = node?.m_element as HTMLElement | null | undefined;
+    if (!element || element === cancel || !element.hasAttribute?.("data-scsk-cancel")) continue;
+    try {
+      const index = children.indexOf(node);
+      if (index >= 0) children.splice(index, 1);
+      node.m_Parent = null;
+      parent.m_bChildrenSorted = false;
+    } catch {
+      // next tick retries
+    }
+  }
+
+  if (nodeFor(cancel)) return;
+  if (adopt(cancel, parent, template)) say("play bar: cancel button made gamepad reachable");
+}
+
 export function installGamepadFix(): () => void {
   if (timer) return () => undefined;
   const tick = () => {
@@ -97,6 +129,11 @@ export function installGamepadFix(): () => void {
     }
     try {
       fixMenuEntry();
+    } catch {
+      // same
+    }
+    try {
+      fixPlayBarCancel();
     } catch {
       // same
     }
