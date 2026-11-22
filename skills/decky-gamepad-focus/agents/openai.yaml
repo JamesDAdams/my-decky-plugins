@@ -1,0 +1,4 @@
+interface:
+  display_name: "Decky Gamepad Focus"
+  short_description: "Make a plugin control reachable with the controller"
+  default_prompt: "Use $decky-gamepad-focus to make this Decky control reachable with the gamepad and prove it with the simulator."

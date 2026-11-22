@@ -56,6 +56,10 @@ works** on the Steam client (verified through logs and CDP), not just code that 
     `plugins/scskiller/tools/nav-audit.mjs` (it prints the focus parent of every navigable element)
     and fix with the `src/navAdopt.ts` helpers (`moveUnder`, `adopt`). Never ship a documented
     "mouse/keyboard only" caveat for a control you added.
+    **Load the `decky-gamepad-focus` skill first** (§6): it holds the measured recipe, the four ways a
+    node is ignored, and the `pad-sim.mjs` simulator, which reproduces the D-pad (`--from Play right
+    right right left left`) so a "the controller cannot reach it" claim is checked in a minute instead
+    of being argued about for hours.
 
 ## 3. Measured facts (Windows, Steam + Decky 3, November 2026)
 
@@ -223,6 +227,10 @@ every entry uses `/`.
   panel, versioning and zip packaging.
 - `steam-footer-legend` — add a button **in the right place** of the bottom bar, with the native look
   (measured recipe + pitfalls).
+- `decky-gamepad-focus` — make a plugin control **reachable with the controller**: navigation nodes,
+  the two focus stores Steam requires, the four ways a node is ignored, cloning a native icon of the
+  row, and the `pad-sim.mjs` simulator that replays the D-pad. Read it before touching anything the
+  gamepad is supposed to reach (rule 11).
 - `decky-debug` — "the plugin does nothing": log, CDP, symptom → cause → verification matrix.
 
 **Docs**:
@@ -234,7 +242,9 @@ every entry uses `/`.
 
 **Tooling**: `tools/` (CDP) — see `tools/README.md`. Plugin-specific helpers live next to their plugin
 (`plugins/scskiller/tools/cdp-eval.mjs`, `cdp-reload.mjs`, `cdp-inject.mjs`, `cdp-click.mjs`,
-`cdp-key.mjs`, `cdp-console.mjs`, `cdp-shot.mjs`, `nav-audit.mjs`, `nav-probe.mjs`).
+`cdp-key.mjs`, `cdp-console.mjs`, `cdp-shot.mjs`, `nav-audit.mjs`, `nav-probe.mjs`, `pad-sim.mjs`
+(gamepad simulator — `--from <label> right right left`, `--walk`, see the `decky-gamepad-focus`
+skill)).
 `tools/fix-mojibake.py` repairs the
 UTF-8 → cp1252 → UTF-8 corruption that a PowerShell text pipeline leaves behind (see rule 9).
 
