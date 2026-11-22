@@ -13,7 +13,7 @@ import { Navigation, Router } from "@decky/ui";
 export const UI_MODE_GAMEPAD = 4;
 /** Steam's EUIMode.Desktop. */
 export const UI_MODE_DESKTOP = 7;
-/** Steam's EUIMode.Unknown — "the client has not decided yet". */
+/** Steam's EUIMode.Unknown - "the client has not decided yet". */
 export const UI_MODE_UNKNOWN = -1;
 
 /** Steam's ENavigationSourceType (globals/shared/navigation). */

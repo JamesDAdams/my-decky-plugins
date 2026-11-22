@@ -28,9 +28,9 @@ commande.
 
 ## Installation
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger DeckyShortcut">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/decky-qam-shortcut-2.1.1.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger DeckyShortcut">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/DeckyShortcut-decky-2.1.2.zip)
 
-1. Téléchargez `decky-qam-shortcut-2.1.1.zip` depuis `releases/`.
+1. Téléchargez `DeckyShortcut-decky-2.1.2.zip` depuis `releases/`.
 2. Decky Loader → ... → **Install from zip file** → sélectionnez le zip.
 3. Le plugin se recharge immédiatement ; `Ctrl+2 DECKY` apparaît dans la barre du bas.
 

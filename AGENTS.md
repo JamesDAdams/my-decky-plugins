@@ -236,8 +236,10 @@ Get-Content "$env:USERPROFILE\homebrew\logs\<name>\*.log"        # plugin log
 ```
 
 Zip rule (measured): `Compress-Archive` writes `\` in entry names and Decky's installer fails on that;
-build zips with `python tools/make_zip.py <folder> <out.zip>` (or `zipfile` with `as_posix()` names) so
-every entry uses `/`.
+build the install zip with `python tools/release.py package <plugin> --out-dir releases` (or `zipfile`
+with `as_posix()` names) so every entry uses `/`. `release.py` is the only packer: both `build.ps1`
+scripts and the CI release workflow call it, and its fixed timestamps make the same sources produce the
+same bytes, so the zip committed in `releases/` can be compared with the artifact of a release.
 
 ## 6. Index
 
@@ -276,7 +278,8 @@ UTF-8 → cp1252 → UTF-8 corruption that a PowerShell text pipeline leaves beh
 
 **Repository**: `README.md` / `README.fr.md` (the plugin listing, English default), `assets/`
 (README badges), `docs/` (the website published on GitHub Pages + the technical notes),
-`releases/` (installable zips, one per plugin version).
+`releases/` (installable zips, one per plugin version), `.github/workflows/release.yml` + `tools/release.py`
+(one GitHub release per plugin, published from CI on every push to `main`, zip attached).
 
 **Plugins**: `plugins/decky-qam-shortcut/` (bottom-bar shortcut, reference for footer work);
 `plugins/scskiller/` (in-page React-tree button + Python backend reading a Windows app's JSON state,
@@ -299,6 +302,8 @@ docs/assets/             every image the site needs: Pages serves /docs only
 releases/                installable zips; only the latest version of each plugin stays here,
                          older ones move to releases/legacy/ (gitignored)
 assets/                  README badges (download-en.svg, download-fr.svg)
+tools/release.py         the packer/release helper (matrix, package, notes)
+.github/workflows/       release.yml: one GitHub release per plugin on every push to main
 README.md / README.fr.md  root listing (English default + French)
 AGENTS.md                this file
 ```
@@ -347,6 +352,42 @@ rebuild the bundle and the zip, drop the zip in `releases/`, update the zip URL 
 version text in `docs/index.html` (the runtime fetch corrects it, but the static value must already be
 right for crawlers and for offline copies).
 
+### Releases: one per plugin, published by CI
+
+`.github/workflows/release.yml` runs on **every push to `main`** (`workflow_dispatch` re-runs it) and
+gives each plugin its own GitHub release:
+
+| Item | Value |
+| --- | --- |
+| Tag | `<plugin.json name>-v<package.json version>`, e.g. `SCSKiller-v0.9.15` |
+| Asset | `<plugin.json name>-decky-<version>.zip`, e.g. `SCSKiller-decky-0.9.15.zip` |
+| Title | `<plugin.json name> <version>` |
+| Body | `python tools/release.py notes <plugin>`: the `publish.description`, the three install steps (download the zip, Decky **Install from zip file**, restart Steam), and the commits that touched that plugin since its previous tag |
+| Permissions | `contents: write` (the job-level `GITHUB_TOKEN`); one `concurrency` lane so two pushes never race for the same tag |
+
+The plugin list is **discovered**, not configured: any folder under `plugins/` holding `plugin.json`
+and `package.json` is built and released, so adding a plugin needs no workflow change. `tools/release.py`
+is the single source of the names (`list`, `matrix`, `package`, `notes`), and it is also what both
+`build.ps1` scripts call, so the local zip and the release asset have the same bytes.
+
+The `publish` job gates the release on the same checks as the local build: `npx tsc --noEmit`,
+`npx rollup -c`, the pure-ASCII check on `dist/index.js` (rule 9) and `python3 -m unittest discover -s
+tests` when the plugin has tests. An artifact is never published from a red job.
+
+Publishing is idempotent by version: when the tag already exists the job **does nothing** and says so
+in the run summary — the way to publish again is to bump `package.json`, never to move a tag or edit a
+release by hand. So "release on every push" means every push that ships a new version gets its release;
+a documentation push keeps the runs green without rewriting an existing asset.
+
+Runtime helpers ship only when the plugin lists them: `package.json` → `decky.ship` (measured need:
+`plugins/steamswitch/package.json` → `"ship": ["tools/switch.ps1"]`), because the same `tools/` folder
+also holds the dev probes (`*.mjs`, `*.js`), which must stay out of an install.
+
+Verification of the pipeline (no `gh` CLI on this machine): the public API answers without a token —
+`https://api.github.com/repos/JamesDAdams/my-decky-plugins/releases` (tags + asset names/sizes),
+`.../actions/runs?per_page=3` (conclusion) and `.../actions/runs/<id>/jobs` (which step failed). Run
+logs need a token, so a failure is read from the job list, not from the log.
+
 ## 8. README rules
 
 Root listing (`README.md` / `README.fr.md`):
@@ -394,3 +435,12 @@ Per-plugin README:
   open(p,encoding='utf-8').read()]" README.md ...` must print nothing.
 - After `git push`, wait for the Pages build to finish and for the CDN copy
   (`max-age=300`) before announcing a new version.
+- The committed zip must match the version: rebuild it with
+  `python tools/release.py package <plugin> --out-dir releases` (or the plugin's `build.ps1`) and keep
+  the README/site links on the exact name it prints - a stale badge shipped once
+  (`SCSKiller-decky-0.9.10.zip` while the plugin was at 0.9.15).
+- After `git push`, the **Release plugins** run is the last gate:
+  `https://api.github.com/repos/JamesDAdams/my-decky-plugins/actions/runs?per_page=3` for the
+  conclusion, `.../actions/runs/<id>/jobs` for the failing step (logs need a token), and
+  `.../releases` for the tags with their asset names and sizes. A green run that published nothing
+  means the tag already existed: bump `package.json` instead of re-running the job.

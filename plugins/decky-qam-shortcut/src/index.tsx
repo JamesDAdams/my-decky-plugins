@@ -54,7 +54,7 @@ function Content({ session }: { session: HintSession }) {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const openPanel = async () => {
-    setFeedback("Ouverture…");
+    setFeedback("Ouverture...");
     const requested = session.openPanel();
     const opened = requested && (await waitForQuickAccess(900));
     setFeedback(opened ? "Panneau Decky ouvert." : "Impossible d'ouvrir le panneau pour le moment.");
@@ -62,11 +62,11 @@ function Content({ session }: { session: HintSession }) {
 
   return (
     <>
-      <PanelSection title="Raccourci en bas de l'écran">
+      <PanelSection title={"Raccourci en bas de l'\u00e9cran"}>
         <PanelSectionRow>
           <ToggleField
             label="Activer le rappel et Ctrl+2"
-            description="Ajoute « Ctrl+2 DECKY » à côté de F9 OPTIONS dans la barre du bas, et active la touche Ctrl+2."
+            description={"Ajoute Ctrl+2 DECKY \u00e0 c\u00f4t\u00e9 de F9 OPTIONS dans la barre du bas, et active la touche Ctrl+2."}
             checked={config.enabled}
             onChange={(enabled: boolean) => setConfig({ enabled })}
           />
@@ -78,7 +78,7 @@ function Content({ session }: { session: HintSession }) {
         </PanelSectionRow>
       </PanelSection>
 
-      <PanelSection title="Détection">
+      <PanelSection title={"D\u00e9tection"}>
         <PanelSectionRow>
           <div
             style={{
@@ -88,7 +88,7 @@ function Content({ session }: { session: HintSession }) {
               whiteSpace: "pre-line",
             }}
           >
-            {`Mode actuel : ${mode === "gamepad" ? "manette" : "clavier / souris"}\nRaccourci clavier / souris : Ctrl+2\nRaccourci manette : bouton QAM (…) de Steam${
+            {`Mode actuel : ${mode === "gamepad" ? "manette" : "clavier / souris"}\nRaccourci clavier / souris : Ctrl+2\nRaccourci manette : bouton QAM (...) de Steam${
               feedback ? `\n${feedback}` : ""
             }`}
           </div>
@@ -104,7 +104,7 @@ export default definePlugin(() => {
       if (!handled) {
         toaster.toast({
           title: "Raccourci Decky",
-          body: "Le panneau Decky n'a pas pu être ouvert.",
+          body: "Le panneau Decky n'a pas pu \u00eatre ouvert.",
         });
       }
     },

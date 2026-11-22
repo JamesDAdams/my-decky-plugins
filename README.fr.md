@@ -13,7 +13,7 @@ Site : **https://jamesdadams.github.io/my-decky-plugins/**
 
 | Plugin | Ce qu'il fait | Installation |
 | --- | --- | --- |
-| [**DeckyShortcut**](plugins/decky-qam-shortcut/) | Ajoute `Ctrl+2 DECKY` à la barre de raccourcis du bas, juste à gauche de `F9 OPTIONS`, avec l'apparence des légendes Steam. `Ctrl+2` ou un clic ouvre le panneau Decky (l'onglet Decky du menu d'accès rapide) ; la légende est réinsérée dès que Steam reconstruit sa barre. Rien n'est dessiné à la main et rien n'est patché dans Steam : la légende est clonée d'une légende native à l'exécution.<br><br><img src="plugins/decky-qam-shortcut/screenshots/footer.png" width="260" alt="Légende Ctrl+2 DECKY dans la barre du bas de Steam Big Picture"> | [<img src="assets/download-fr.svg" width="96" height="28" alt="Télécharger DeckyShortcut">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/decky-qam-shortcut-2.1.1.zip) |
+| [**DeckyShortcut**](plugins/decky-qam-shortcut/) | Ajoute `Ctrl+2 DECKY` à la barre de raccourcis du bas, juste à gauche de `F9 OPTIONS`, avec l'apparence des légendes Steam. `Ctrl+2` ou un clic ouvre le panneau Decky (l'onglet Decky du menu d'accès rapide) ; la légende est réinsérée dès que Steam reconstruit sa barre. Rien n'est dessiné à la main et rien n'est patché dans Steam : la légende est clonée d'une légende native à l'exécution.<br><br><img src="plugins/decky-qam-shortcut/screenshots/footer.png" width="260" alt="Légende Ctrl+2 DECKY dans la barre du bas de Steam Big Picture"> | [<img src="assets/download-fr.svg" width="96" height="28" alt="Télécharger DeckyShortcut">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/DeckyShortcut-decky-2.1.2.zip) |
 | [**SCSKiller**](plugins/scskiller/) | Relie l'application Windows [SCSKiller](https://github.com/BlueHeisenberg/SCSKiller) à Steam : un bouton de compilation de 48×48 px exactement à 8 px à gauche de l'icône manette sur la fiche du jeu, une fenêtre de stats alimentée par ce que SCSKiller remonte (shaders, pipelines, cache, estimation, dernière compilation), et une page du menu d'accès rapide qui liste la file avec la progression en direct. Le plugin n'embarque aucun binaire : il appelle le `scskiller.exe` déjà installé.<br><br><img src="plugins/scskiller/screenshots/game-page-compiling.png" width="260" alt="Fiche de jeu Steam avec le bouton SCSKiller à gauche de l'icône manette"> | [<img src="assets/download-fr.svg" width="96" height="28" alt="Télécharger SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.15.zip) |
 | [**SteamSwitch**](plugins/steamswitch/) | Quand un jeu appartient à un **autre compte Steam** mémorisé sur le PC, Steam affiche **Borrow**. Ce plugin réécrit ce bouton natif en **Switch account & Play** : un helper détaché quitte Steam, déclare le compte propriétaire en connexion automatique (`loginusers.vdf` + registre), relance en Big Picture, attend ce compte puis lance le jeu. Un second bouton sur la page des réglages du compte change de compte sans passer par l'écran de déconnexion. Aucun compte n'est codé en dur.<br><br><img src="plugins/steamswitch/screenshots/game-page-switch.png" width="260" alt="Bouton Borrow remplacé par Switch account & Play sur une fiche de jeu Steam"> | [<img src="assets/download-fr.svg" width="96" height="28" alt="Télécharger SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.4.zip) |
 
@@ -28,6 +28,12 @@ Site : **https://jamesdadams.github.io/my-decky-plugins/**
 Installer un plugin : téléchargez le zip ci-dessus, puis menu Decky → **Install from zip file** →
 sélectionnez le zip. Installation manuelle : copiez le dossier du plugin dans
 `%USERPROFILE%\homebrew\plugins\` et redémarrez Steam.
+
+Chaque version de plugin est aussi publiée en **release GitHub** avec le zip installable :
+<https://github.com/JamesDAdams/my-decky-plugins/releases> (une release par plugin, tag
+`<nom>-v<version>`). Un push sur `main` qui incrémente la version d'un `package.json` construit le
+bundle, lance les tests du backend, fabrique le zip et publie la release depuis
+[`.github/workflows/release.yml`](.github/workflows/release.yml).
 
 ## Arborescence
 
@@ -44,8 +50,9 @@ docs/                    le site statique publié sur GitHub Pages
   qam-shortcut-plugin.md  étude de cas du plugin Ctrl+2
   workshop.md             l'index de l'atelier (skills, outillage, plugins)
 releases/                zips installables, un par version de plugin
+.github/workflows/       release.yml : une release GitHub par plugin à chaque push sur main
 skills/                  skills DSH utilisées pour construire les plugins
-tools/                   outillage de vérification CDP (évaluation, clic, capture)
+tools/                   outillage de vérification CDP (évaluation, clic, capture) + release.py
 assets/                  badges des README
 AGENTS.md                les règles suivies dans ce dépôt
 README.md / README.fr.md ce listing (anglais par défaut + français)

@@ -1,6 +1,6 @@
 {
   "name": "decky-qam-shortcut",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Decky Loader plugin: a Ctrl+2 DECKY legend in the Big Picture footer that opens the Decky panel",
   "type": "module",
   "scripts": {

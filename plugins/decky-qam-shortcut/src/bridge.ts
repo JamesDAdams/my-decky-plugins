@@ -241,7 +241,7 @@ export async function pushHint(config: HintConfig): Promise<boolean> {
     if (!res.success) continue;
     const answer = String(res.result ?? "");
     if (answer.indexOf('"ok":true') === -1) {
-      // Right title but wrong window (small viewport) — try the next candidate.
+      // Right title but wrong window (small viewport) - try the next candidate.
       if (answer.indexOf("small-window") !== -1) continue;
       if (answer !== lastRefusal) {
         lastRefusal = answer;

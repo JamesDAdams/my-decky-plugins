@@ -21,6 +21,9 @@
     "@decky/api": "^1.1.3",
     "tslib": "^2.7.0"
   },
+  "decky": {
+    "ship": ["tools/switch.ps1"]
+  },
   "pnpm": {
     "peerDependencyRules": {
       "ignoreMissing": [

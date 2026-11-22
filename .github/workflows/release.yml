@@ -1,0 +1,128 @@
+name: Release plugins
+
+# One GitHub release per Decky plugin, published on every push to main: the job
+# builds the bundle of each plugin, packs the installable zip and attaches it to
+# the release tagged `<plugin.json name>-v<package.json version>`.
+#
+# A release is created only when that tag does not exist yet, so a push that does
+# not bump a plugin version is a no-op for that plugin (the run stays green and
+# says so in the job summary). Bump `plugins/<folder>/package.json` to publish.
+#
+# Tags, asset names and the plugin list all come from tools/release.py, which reads
+# plugins/*/package.json + plugin.json: adding a plugin folder is enough.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Release assets and tags are written with the token below; never run two of these
+# at once, otherwise two runs race for the same tag.
+concurrency:
+  group: release-main
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Collect the plugins and their versions
+        id: plan
+        run: |
+          matrix="$(python3 tools/release.py matrix)"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Planned releases"
+            echo '```'
+            python3 tools/release.py list
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  publish:
+    name: ${{ matrix.name }} ${{ matrix.version }}
+    needs: plan
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history: the release body lists the commits since the previous tag
+          # that touched this plugin.
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        working-directory: plugins/${{ matrix.folder }}
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci --no-audit --no-fund
+          else
+            npm install --no-audit --no-fund
+          fi
+
+      - name: Typecheck
+        working-directory: plugins/${{ matrix.folder }}
+        run: npx --no-install tsc --noEmit
+
+      - name: Build the bundle
+        working-directory: plugins/${{ matrix.folder }}
+        run: npx --no-install rollup -c
+
+      # Decky serves dist/index.js without a charset, so one byte >= 0x80 turns the
+      # whole module into mojibake (AGENTS.md rule 9).
+      - name: Bundle is pure ASCII
+        working-directory: plugins/${{ matrix.folder }}
+        run: |
+          node -e "const fs=require('fs');const t=fs.readFileSync('dist/index.js','utf8');const bad=[...t].filter(c=>c.codePointAt(0)>127);if(bad.length){console.error('non-ASCII chars in bundle: '+bad.slice(0,10).join(' '));process.exit(1)}console.log('dist/index.js: '+t.length+' ASCII chars')"
+
+      - name: Backend tests
+        working-directory: plugins/${{ matrix.folder }}
+        run: |
+          if [ -d tests ]; then
+            python3 -m unittest discover -s tests
+          else
+            echo "this plugin has no backend tests"
+          fi
+
+      - name: Pack the installable zip
+        run: python3 tools/release.py package plugins/${{ matrix.folder }} --out-dir "$RUNNER_TEMP/assets"
+
+      # gh is preinstalled on ubuntu runners; the token above carries contents:write.
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="${{ matrix.tag }}"
+          zip="$RUNNER_TEMP/assets/${{ matrix.asset }}"
+          notes="$RUNNER_TEMP/notes.md"
+          python3 tools/release.py notes "${{ matrix.folder }}" > "$notes"
+          echo "notes: $notes"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            {
+              echo "### $tag already released"
+              echo "Nothing to publish: bump \`plugins/${{ matrix.folder }}/package.json\` to ship a new build."
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh release create "$tag" "$zip" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "${{ matrix.name }} ${{ matrix.version }}" \
+              --notes-file "$notes"
+            {
+              echo "### Published $tag"
+              echo "Asset: \`${{ matrix.asset }}\`"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi

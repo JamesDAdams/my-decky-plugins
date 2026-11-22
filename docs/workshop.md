@@ -23,9 +23,12 @@ decky/
 │   └── scskiller/             # in-page game button + Windows app backend (reference for the
 │                              #   React-tree placement recipe in AGENTS.md 3b)
 ├── releases/
-│   ├── decky-qam-shortcut-2.1.1.zip   # zips ready to install through Decky
-│   └── SCSKiller-decky-0.6.6.zip
-└── tools/                     # CDP: evaluate JS, test the bundle, probe the DOM
+│   ├── DeckyShortcut-decky-2.1.2.zip  # zips ready to install through Decky
+│   ├── SCSKiller-decky-0.9.15.zip
+│   └── SteamSwitch-decky-0.1.4.zip
+├── .github/
+│   └── workflows/release.yml  # one GitHub release per plugin on every push to main
+└── tools/                     # CDP: evaluate JS, test the bundle, probe the DOM; release.py packs
 ```
 
 Each plugin keeps its own live-verification helpers next to its sources (`plugins/<name>/tools/`:
@@ -62,6 +65,11 @@ npm run build            # -> dist/index.js (ESM, must stay ASCII: see AGENTS.md
 
 Install: Decky Loader → ⚙️ → *Install from zip file*, or copy the folder into
 `%USERPROFILE%\homebrew\plugins\` and reload.
+
+Releases: `python tools/release.py package <plugin> --out-dir releases` names and packs the zip (the
+only packer: both `build.ps1` scripts call it), and `.github/workflows/release.yml` publishes one
+**GitHub release per plugin** (`<name>-v<version>`, zip attached) on every push to `main`. The job only
+publishes a version it has not released yet, so shipping means bumping `package.json`.
 
 Before shipping any plugin: `dist/index.js` contains no byte > 0x7F, custom `Focusable`s use
 `noFocusRing`, no `SteamSpinner` inside a modal, and backend changes are followed by a Steam restart

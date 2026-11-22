@@ -74,25 +74,12 @@ try {
     }
 
     Write-Host "== package =="
-    $releases = Join-Path (Split-Path -Parent (Split-Path -Parent $here)) "releases"
-    New-Item -ItemType Directory -Force -Path $releases | Out-Null
-    $stage = Join-Path $here ".stage"
-    if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
-    $root = New-Item -ItemType Directory -Force -Path (Join-Path $stage "SteamSwitch")
-    foreach ($item in "plugin.json", "package.json", "main.py", "README.md", "LICENSE") {
-        if (Test-Path (Join-Path $here $item)) { Copy-Item (Join-Path $here $item) $root.FullName }
-    }
-    Copy-Item (Join-Path $here "dist"), (Join-Path $here "src") -Destination $root.FullName -Recurse
-    $stageTools = New-Item -ItemType Directory -Force -Path (Join-Path $root.FullName "tools")
-    Copy-Item (Join-Path $here "tools/switch.ps1") $stageTools.FullName -Force
-    $zip = Join-Path $releases ("SteamSwitch-decky-{0}.zip" -f $version)
-    if (Test-Path $zip) { Remove-Item -Force $zip }
-    # Python writes forward-slash entries; Compress-Archive writes backslashes, which
-    # Decky's installer cannot extract.
-    & $py (Join-Path $here "tools/make_zip.py") $root.FullName $zip
+    # One packer for the local build and for .github/workflows/release.yml: same
+    # entries, same zip name, forward-slash entries (Decky cannot read backslashes).
+    # tools/switch.ps1 is a runtime helper, listed in package.json -> decky.ship.
+    $repo = Split-Path -Parent (Split-Path -Parent $here)
+    & $py (Join-Path $repo "tools/release.py") package $here --out-dir (Join-Path $repo "releases")
     if ($LASTEXITCODE -ne 0) { throw "zip failed" }
-    if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
-    Write-Host ("zip: {0} ({1} bytes)" -f $zip, (Get-Item $zip).Length)
 }
 finally {
     Pop-Location

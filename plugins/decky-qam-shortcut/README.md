@@ -26,9 +26,9 @@ controller mode, where Steam replaces key caps with control glyphs.
 
 ## Installation
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download DeckyShortcut">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/decky-qam-shortcut-2.1.1.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download DeckyShortcut">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/DeckyShortcut-decky-2.1.2.zip)
 
-1. Download `decky-qam-shortcut-2.1.1.zip` from `releases/`.
+1. Download `DeckyShortcut-decky-2.1.2.zip` from `releases/`.
 2. Decky Loader → ... → **Install from zip file** → select the zip.
 3. The plugin reloads immediately; `Ctrl+2 DECKY` shows up in the bottom bar.
 
