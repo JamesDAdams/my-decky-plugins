@@ -1,90 +1,40 @@
-import { Focusable, showModal } from "@decky/ui";
-import type { CSSProperties } from "react";
-import { ScskIcon } from "./ScskIcon";
+import { showModal } from "@decky/ui";
 import { ScskModal } from "./ScskModal";
 
 /**
- * The compact SCSKiller button of the game page (left of the controller icon).
+ * The game page button and the modal it opens.
  *
- * It deliberately has **no React state**: every re-render makes Decky's Focusable register its
- * navigation node again, which lands under the page container instead of the icon row, and a
- * controller user then walks past the button. Focus and hover are pure CSS here, and the status
- * dot is painted by `dot.ts` straight on the DOM element.
+ * The button itself is not a React component any more: it is a copy of Steam's own icon in the play
+ * bar (see `gamePageTree.tsx`), because only an element that Steam's navigation tree knows about can
+ * be reached with a controller. This module keeps the shared state - which game the page shows - and
+ * the one action the button performs.
  */
+
 export let activeAppid = 0;
 
 export function setActiveAppid(appid: number): void {
   activeAppid = appid;
 }
 
-const RED = "#e05252";
-const BG = "rgba(172, 178, 201, 0.14)";
+/** The SCSKiller bolt, the same path the plugin icon uses. */
+export const SCSK_ICON_PATH = "M13 2 4.5 13.2c-.4.5 0 1.3.6 1.3H10l-1 7.5L19.5 10c.4-.5 0-1.3-.6-1.3H14l1-6.7Z";
 
 /** A gamepad A press and a mouse click can both arrive: only open once. */
 let lastOpenAt = 0;
 
-const BUTTON: CSSProperties = {
-  position: "relative",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  width: 48,
-  height: 48,
-  borderRadius: 2,
-  background: BG,
-  padding: 4,
-  boxSizing: "border-box",
-  color: "#e6e8ea",
-  flex: "0 0 auto",
-};
-
-const DOT: CSSProperties = {
-  position: "absolute",
-  right: 4,
-  bottom: 4,
-  width: 9,
-  height: 9,
-  borderRadius: 5,
-  border: "1px solid rgba(0,0,0,0.55)",
-  background: RED,
-  boxShadow: `0 0 5px ${RED}`,
-};
-
-// Steam paints a focused icon white with a dark glyph; hover keeps the softer grey. Both live in
-// CSS so the component never re-renders for a visual state.
-const CSS = `[data-scskiller-button]:hover{background:rgba(205,213,226,0.26)!important}
-[data-scskiller-button]:focus{background:#e6e8ea!important;color:#16191d!important}`;
-
-function open(): void {
+export function openScsk(): void {
   const now = Date.now();
   if (now - lastOpenAt < 500) return;
-  lastOpenAt = now;
   const appid = activeAppid;
   if (!appid) return;
   if (typeof showModal !== "function") {
     console.warn("[SCSKiller] Steam's showModal is unavailable; the QAM panel still works");
     return;
   }
+  lastOpenAt = now;
   let handle: { Close: () => void } | null = null;
   handle = showModal(<ScskModal appid={appid} onClose={() => handle?.Close()} />, undefined, {
     strTitle: "SCSKiller",
     bHideMainWindowForPopouts: true,
   });
-}
-
-export function ScskButton() {
-  return (
-    <Focusable
-      data-scskiller-button="1"
-      style={BUTTON}
-      onActivate={() => open()}
-      onClick={() => open()}
-      onOKActionDescription="SCSKiller"
-      noFocusRing
-    >
-      <style>{CSS}</style>
-      <ScskIcon size={24} />
-      <span data-scskiller-dot="1" style={DOT} />
-    </Focusable>
-  );
 }

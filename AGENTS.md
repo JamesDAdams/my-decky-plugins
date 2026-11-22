@@ -137,10 +137,38 @@ and looks right. What decides is its **navigation node**:
 | Fix for a DOM clone (account page) | the clone has **no** node at all: `adopt(clone, rowNode, nodeFor(nativeChangeAccountButton))` copies the native node (prototype + fields) and points it at the clone → audited parent becomes the account button row `_1K247zQ1_VKWvLhPUceiRB Panel Focusable` |
 | Left menu (MainMenu_uid2) | the rail lives in **another document** (`ownerDocument` of its nodes, `/routes/login`); each item is a 240 px `div.Panel.Focusable`; a plugin page object renders with the right look but **without** a node → `adopt(item, nodeFor(downloads).m_Parent, nodeFor(downloads))` |
 | Focus look | Steam paints the focused icon white with a dark glyph: using `noFocusRing` means the plugin must paint that state itself (`onFocus` → white background, dark glyph), otherwise a controller user sees nothing move |
-| Tools | `plugins/scskiller/tools/nav-audit.mjs` (lists navigable elements + their focus parent, `--text`, `--class`, `--near x,y`) and `nav-probe.mjs` (keyboard/gamepad direction probe) |
+| Tools | `plugins/scskiller/tools/nav-audit.mjs` (lists navigable elements + their focus parent, `--text`, `--class`, `--near x,y`), `nav-press.mjs` (D-pad buttons and the event Steam reads), `probe-icon.js` / `probe-row-node.js` (the icons row: geometry, fiber chain, nav node) |
 
 Shared helper: `plugins/scskiller/src/navAdopt.ts` and `plugins/steamswitch/src/navAdopt.ts`
 (`navTrees`, `walkNodes`, `uiDocument`, `nodeFor`, `moveUnder`, `adopt`).
+
+### 3d. The play bar's icon row — what actually works (measured 2026-11-22)
+
+Going through the route patcher does **not** reach that row, and this is the important part:
+
+| Finding | Evidence |
+| --- | --- |
+| The row is a focus **group**, not a focus target | its node: `GetFocusable() = "children"`, `layout = 2`, `m_rgChildren` = [controller wrapper (group, 58 px), `Manage` icon (`self`, 48 px)] |
+| The row is built far below the route's element tree | route render gives elements with `navRef` (play bar) but never the row; the row is created by a `forwardRef` whose props are `parentComponent, setSections, overview, details, ...`, itself created 8+ components deeper |
+| Those ancestors cannot be wrapped | Steam's minified layout is made of `{...props}` styled factories (`S`, `pt`, ...) reused everywhere: wrapping one instruments the whole UI. Wrapping only types that appear **once** in the tree leaves the descent stuck, because the containers around the play bar are all shared |
+| Patching a deep `forwardRef`'s `render` works, but its output still has no row | measured: `afterPatch(type, "render", ...)` fires, the rendered output is `S kids=S,pt,S` (no `aria-label` descendants) |
+| What does work: a **copy of a native icon of the row** | clone the `Manage` element (same classes, 48×48, no React handlers), insert it as the row's **first child**, then `adopt(clone, rowNode, manageNode)`; `rowNode.EnsureChildrenSorted()` then orders it by geometry (1151 < 1199 < 1267). Verified: node present, `GetFocusable() = "self"`, `click()` opens the plugin's modal, the status dot is painted by `dot.ts` |
+| The button must not be rebuilt on every Steam render | the keeper (400 ms) re-`adopt`s only when `nodeFor(button)` is empty, never re-creates the element: a new element would need a new node and lose the focus |
+
+**Focus movement cannot be simulated on this build** — do not pretend otherwise:
+
+| Attempt | Result |
+| --- | --- |
+| `tree.TakeFocus(node)` | no effect (also no effect on native nodes) |
+| `NavigationManager.DispatchVirtualGamepad("vgp_onbuttondown", {button, source, is_repeat})` | no effect, whatever the button id (4-13 swept) |
+| what Steam really reads | `vgp_onbuttondown` / `vgp_onbuttonup` **CustomEvents** (`sp.js` module 54654; `DIR_UP=9, DIR_DOWN=10, DIR_LEFT=11, DIR_RIGHT=12`, `source` GAMEPAD = 1) |
+| dispatching those events by hand on the focused element, `body`, `document`, `window`, or the tree root | event fires, focus does not move (the handlers only trust real input) |
+
+So the honest verification is structural (node in `m_rgChildren` of the row, sorted by geometry,
+`GetFocusable()`, DOM focusable) **plus** the `focus` / `blur` lines the plugin logs on the button:
+a controller test then leaves evidence in `homebrew/logs/<name>/`. Never claim a control is
+"gamepad reachable" from the tree alone, and never again ship a fabricated node as a fix without
+saying which part is unverified.
 
 ## 4. Anatomy of a plugin
 

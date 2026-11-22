@@ -17,9 +17,9 @@ pont, pas une copie.
 
 ## Installation
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.8.5.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.0.zip)
 
-1. Téléchargez le zip (`SCSKiller-decky-0.8.5.zip`).
+1. Téléchargez le zip (`SCSKiller-decky-0.9.0.zip`).
 2. Decky Loader → icône engrenage → **Install from zip file** → sélectionnez ce zip.
 3. Redémarrez Steam : Decky recharge le frontend du plugin, mais son backend Python ne démarre qu'au
    redémarrage de Steam.
@@ -30,14 +30,16 @@ Installation manuelle : copiez le dossier dans `~/homebrew/plugins/`
 
 ## Ce qu'il fait
 
-**Sur la page d'un jeu**, un **bouton identique aux icônes natives de Steam** (48x48 px, coins à 2 px,
-fond `rgba(172,178,201,0.14)`), **immédiatement à gauche de l'icône manette** (8 px d'écart, centres
-alignés), avec le badge SCSKiller et une pastille verte (compilé) ou rouge (à compiler).
+**Sur la page d'un jeu**, un bouton **fabriqué à partir de l'icône native de Steam** (48x48 px, coins
+à 2 px, fond `rgba(172,178,201,0.14)`), **dans la rangée d'icônes, immédiatement à gauche de l'icône
+manette**, avec le badge SCSKiller et une pastille verte (compilé) ou rouge (à compiler).
 
 > Comment : le JavaScript des plugins Decky tourne dans le contexte JS partagé de Steam, une page de
-> 1x1 px sans accès au DOM visible. Le bouton est donc inséré dans l'arbre React de la route (entre
-> l'en-tête et la barre Play) et positionné en absolu (`right: 152px`, `top: 16px`) pour tomber
-> exactement devant l'icône manette, qui est ancrée à droite de cette barre.
+> 1x1 px qui ne peut pas interroger le DOM visible. Le bouton est donc une **copie de l'icône native
+> `Manage` de cette rangée** (mêmes classes, même taille, sans gestionnaires React), insérée en
+> première position, et il reçoit une **copie du nœud de navigation manette de cette icône** — la
+> structure que Big Picture parcourt quand la manette se déplace. Un gardien de 400 ms remet le nœud
+> en place si un rendu de Steam le fait tomber.
 
 Un clic dessus ouvre une **fenêtre de stats**, avec les chiffres que SCSKiller affiche lui-même :
 
@@ -49,7 +51,7 @@ Un clic dessus ouvre une **fenêtre de stats**, avec les chiffres que SCSKiller 
   travail).
 
 Si Steam change sa mise en page, le panneau Decky affiche une ligne `Game page:` qui dit exactement ce
-qui s'est passé (`button injected under the Play bar`, `no content container`, ...). Rien n'est jamais
+qui s'est passé (`button drawn in the icon row`, `button inserted in the icon row with its own navigation node`, `no controller icon on this page`, ...). Rien n'est jamais
 ajouté à un endroit approximatif.
 
 ### Si le bouton n'apparaît pas du tout
@@ -266,10 +268,9 @@ Journaux : `~/homebrew/logs/SCSKiller/` (Decky) et `%LOCALAPPDATA%\SCSKiller\app
 
 ```
 src/index.tsx            definePlugin : panneau + écouteurs d'événements
-src/gamePageTree.tsx     patch de l'arbre React de la route /library/app/:appid : insère le bouton
-                         au-dessus de la barre Play, puis le positionne en absolu devant l'icône
-                         manette
-src/ui/ScskButton.tsx    le bouton 48x48 (badge + pastille de statut), style et survol natifs
+src/gamePageTree.tsx     place le bouton dans la rangée d'icônes : copie de l'icône native `Manage`
+                         plus copie de son nœud de navigation manette, revérifié toutes les 400 ms
+src/ui/ScskButton.tsx    état partagé (quel jeu la page affiche) + ouverture de la fenêtre
 src/ui/ScskModal.tsx     la fenêtre de stats + Compile/Stop/Refresh
 src/ui/ScskIcon.tsx      le badge (éclair dans un hexagone)
 src/ui/Panel.tsx         panneau Decky (détection, liste, réglages, log)
@@ -281,12 +282,17 @@ tools/                   scripts CDP (eval, reload, click, key, shot) pour véri
 build.ps1                typecheck + build + contrôle ASCII + tests + install + zip
 ```
 
-Pourquoi un patch d'arbre : le JavaScript du plugin tourne dans le contexte partagé de Steam, une page
-de 1x1 px sans accès au DOM visible. Seul l'arbre React de la route est atteignable. Le bouton est
-inséré entre l'en-tête (visuel du jeu) et la barre Play (`InnerContainer.children[1]`) dans un
-conteneur de hauteur nulle, puis positionné en absolu (`right: 152px`, `top: 16px`) pour tomber
-exactement à 8 px à gauche de l'icône manette, à la même taille (48x48) et avec le même survol que les
-icônes Steam.
+Pourquoi le bouton est une copie d'une icône native : le JavaScript du plugin tourne dans le contexte
+partagé de Steam, une page de 1x1 px qui ne peut pas interroger le DOM visible, et Big Picture déplace
+le focus manette à travers les **nœuds de navigation** que Steam enregistre pour ses propres
+composants `Focusable`. Un élément React inséré par un patch de route a la bonne apparence, mais son
+nœud tombe sous le conteneur de page (vérifié : parent `_1SvpjsckP9cPRxO6gCBHrw` au lieu de la rangée
+d'icônes `_1thLDT_28YIf6OkgIb6n-4`), et la manette passe à côté. La rangée d'icônes est elle-même un
+groupe de focus dont les enfants *sont* des nœuds enregistrés : le bouton est donc une copie de l'icône
+`Manage` de cette rangée (même balisage, même boîte 48x48, premier enfant de la rangée) et hérite de
+son nœud. Pour l'arbre de navigation, c'est une icône de plus dans la rangée, à la bonne place. La
+rangée est retriée par géométrie (`EnsureChildrenSorted`), ce qui place le bouton avant l'icône manette
+(1151 < 1199 < 1267 px).
 
 Côté backend :
 

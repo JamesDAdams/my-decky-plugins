@@ -17,9 +17,9 @@ is a bridge, not a copy.
 
 ## Install
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.8.5.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.0.zip)
 
-1. Download the zip (`SCSKiller-decky-0.8.5.zip`).
+1. Download the zip (`SCSKiller-decky-0.9.0.zip`).
 2. Decky Loader -> gear icon -> **Install from zip file** -> select that zip.
 3. Restart Steam: Decky reloads the plugin's frontend, but its Python backend only starts on a Steam
    restart.
@@ -29,14 +29,15 @@ Windows), then restart Steam. The folder must be named `SCSKiller`, the `name` i
 
 ## What it does
 
-**On a game's page**, a **button identical to Steam's native icons** (48x48 px, 2 px corners,
-`rgba(172,178,201,0.14)` background), **immediately left of the controller icon** (8 px gap, centres
-aligned), with the SCSKiller badge and a green dot (compiled) or a red dot (to compile).
+**On a game's page**, a button **built from Steam's own icon** (48x48 px, 2 px corners,
+`rgba(172,178,201,0.14)` background), **inside the icon row, immediately left of the controller
+icon**, with the SCSKiller badge and a green dot (compiled) or a red dot (to compile).
 
-> How: Decky plugin JavaScript runs in Steam's shared JS context, a 1x1 px page with no access to the
-> visible DOM. The button is therefore inserted into the route's React tree (between the artwork
-> header and the play bar) and positioned absolutely (`right: 152px`, `top: 16px`) so that it falls
-> exactly in front of the controller icon, which is anchored to the right end of that bar.
+> How: Decky plugin JavaScript runs in Steam's shared JS context, a 1x1 px page that cannot query the
+> visible DOM. The button is therefore a **copy of the native `Manage` icon of that row** (same
+> classes, same size, no React handlers), inserted as the row's first child, and it receives a **copy
+> of that icon's gamepad navigation node** - the structure Big Picture walks when the controller
+> moves. A 400 ms keeper puts the node back if a Steam re-render drops it.
 
 A click opens a **stats window** with the numbers SCSKiller itself displays:
 
@@ -47,7 +48,7 @@ A click opens a **stats window** with the numbers SCSKiller itself displays:
 - **Compile** / **Stop** / **Refresh** / **Close** buttons (the compile log shows while it runs).
 
 If Steam changes its layout, the Decky panel shows a `Game page:` line that says exactly what
-happened (`button injected under the Play bar`, `no content container`, ...). Nothing is ever added in
+happened (`button drawn in the icon row`, `button inserted in the icon row with its own navigation node`, `no controller icon on this page`, ...). Nothing is ever added in
 an approximate place.
 
 ### If the button does not appear at all
@@ -257,10 +258,9 @@ Logs: `~/homebrew/logs/SCSKiller/` (Decky) and `%LOCALAPPDATA%\SCSKiller\app.log
 
 ```
 src/index.tsx            definePlugin: panel + event listeners
-src/gamePageTree.tsx     patch of the /library/app/:appid route's React tree: inserts the button
-                         above the play bar, then positions it absolutely in front of the
-                         controller icon
-src/ui/ScskButton.tsx    the 48x48 button (badge + status dot), native style and hover
+src/gamePageTree.tsx     puts the button in the icon row: a copy of the native `Manage` icon plus a
+                         copy of its gamepad navigation node, re-checked every 400 ms
+src/ui/ScskButton.tsx    shared state (which game the page shows) + the modal opener
 src/ui/ScskModal.tsx     the stats window + Compile/Stop/Refresh
 src/ui/ScskIcon.tsx      the badge (lightning bolt in a hexagon)
 src/ui/Panel.tsx         Decky panel (detection, list, settings, log)
@@ -272,11 +272,16 @@ tools/                   CDP scripts (eval, reload, click, key, shot) to verify 
 build.ps1                typecheck + build + ASCII check + tests + install + zip
 ```
 
-Why a tree patch: the plugin's JavaScript runs in Steam's shared context, a 1x1 px page with no access
-to the visible DOM. Only the route's React tree is reachable. The button is inserted between the
-header (the game's artwork) and the play bar (`InnerContainer.children[1]`) in a zero-height container,
-then positioned absolutely (`right: 152px`, `top: 16px`) so that it lands exactly 8 px to the left of
-the controller icon, at the same size (48x48) and with the same hover as Steam's own icons.
+Why the button is a copy of a native icon: the plugin's JavaScript runs in Steam's shared context, a
+1x1 px page that cannot query the visible DOM, and Big Picture moves the gamepad focus through the
+**navigation nodes** Steam registers for its own `Focusable` components. A React element inserted by a
+route patch looks right but its node lands under the page container (audited: parent
+`_1SvpjsckP9cPRxO6gCBHrw` instead of the icon row `_1thLDT_28YIf6OkgIb6n-4`), and the controller walks
+past it. The icon row is itself a focus group whose children *are* registered nodes, so the button is a
+copy of the `Manage` icon of that row (same markup, same 48x48 box, first child of the row) and it
+inherits that icon's node: as far as the navigation tree is concerned, it is one more icon of the row,
+in the right place. The row is re-sorted by geometry (`EnsureChildrenSorted`), which puts the button
+before the controller icon (1151 < 1199 < 1267 px).
 
 On the backend side:
 
