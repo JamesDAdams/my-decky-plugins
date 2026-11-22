@@ -44,7 +44,7 @@ const message = await new Promise((resolve, reject) => {
     JSON.stringify({
       id,
       method: "Runtime.evaluate",
-      params: { expression, returnByValue: true, userGesture: true, awaitPromise: false },
+      params: { expression, returnByValue: true, userGesture: true, awaitPromise: true },
     }),
   );
 });

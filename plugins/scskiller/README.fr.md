@@ -17,9 +17,9 @@ pont, pas une copie.
 
 ## Installation
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.4.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.5.zip)
 
-1. Téléchargez le zip (`SCSKiller-decky-0.9.4.zip`).
+1. Téléchargez le zip (`SCSKiller-decky-0.9.5.zip`).
 2. Decky Loader → icône engrenage → **Install from zip file** → sélectionnez ce zip.
 3. Redémarrez Steam : Decky recharge le frontend du plugin, mais son backend Python ne démarre qu'au
    redémarrage de Steam.
@@ -297,6 +297,18 @@ qui a fait échouer toutes les tentatives précédentes : un nœud copié qui le
 groupe suffisait à rendre toute la rangée inatteignable depuis Play. Vérifié à la manette : les trois
 icônes de la rangée sont de nouveau atteignables et le bouton suit la barre Play quand la page défile
 (le bouton et l'icône manette passent tous deux de y=367 à y=247 sur un défilement de 120 px).
+
+
+Le parcours est reproductible avec le simulateur plugins/scskiller/tools/pad-sim.mjs :
+
+\\nnode plugins/scskiller/tools/pad-sim.mjs --from Play right right right left left left
+  right -> [SCSKILLER] SCSKiller @1151,367
+  right -> Configure Controller @1209,367
+  right -> Manage @1267,367
+  left  -> Configure Controller @1209,367
+  left  -> [SCSKILLER] SCSKiller @1151,367
+  left  -> Play @38,367
+\\n
 
 Côté backend :
 

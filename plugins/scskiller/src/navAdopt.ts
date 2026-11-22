@@ -14,6 +14,30 @@
  * here is checked on the live client.
  */
 
+/**
+ * A navigation node keeps its focus state in two subscribables (`m_Focused`, `m_FocusWithin`), and
+ * Steam calls `node.m_Focused.Set(...)` when the focus moves. A copy that holds a plain `false`
+ * throws there - and a throw inside the traversal is what makes a whole focus group unreachable
+ * (measured: with booleans, the game page's three icons could not be focused from Play at all, and
+ * `node.BTakeFocus` answered "this.m_Focused.Set is not a function").
+ */
+export function makeFocusState(template: any): any {
+  if (!template || typeof template !== "object") return template;
+  try {
+    const ctor = Object.getPrototypeOf(template)?.constructor;
+    if (typeof ctor === "function") {
+      const fresh = new ctor(false);
+      if (fresh && typeof fresh.Set === "function") return fresh;
+    }
+  } catch {
+    // fall through to a hand-made copy
+  }
+  const copy = Object.create(Object.getPrototypeOf(template));
+  copy.m_callbacks = { m_vecCallbacks: [] };
+  copy.m_currentValue = false;
+  copy.m_fnEquals = undefined;
+  return copy;
+}
 export type NavNode = any;
 
 /** Every navigation tree of the active context (Big Picture, the left menu, the QAM...). */
@@ -144,8 +168,8 @@ export function adopt(element: Element | null | undefined, parent: NavNode, temp
     node.m_ActiveChild = null;
     node.m_iLastActiveChildIndex = -1;
     node.m_bMounted = true;
-    node.m_Focused = false;
-    node.m_FocusWithin = false;
+    node.m_Focused = makeFocusState(template.m_Focused);
+    node.m_FocusWithin = makeFocusState(template.m_FocusWithin);
     node.m_bChildrenSorted = true;
     // the focus filter (GetFocusable) reads m_Properties.focusable; without it the node is in
     // the tree but the D-pad walks straight past it. Measured (2026-11-22): the copy also inherits

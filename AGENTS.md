@@ -153,23 +153,27 @@ Going through the route patcher does **not** reach that row, and this is the imp
 | Those ancestors cannot be wrapped | Steam's minified layout is made of `{...props}` styled factories (`S`, `pt`, ...) reused everywhere: wrapping one instruments the whole UI. Wrapping only types that appear **once** in the tree leaves the descent stuck, because the containers around the play bar are all shared |
 | Patching a deep `forwardRef`'s `render` works, but its output still has no row | measured: `afterPatch(type, "render", ...)` fires, the rendered output is `S kids=S,pt,S` (no `aria-label` descendants) |
 | What does work: a **copy of a native node, cleaned** | `adopt()` must drop `fnCanTakeFocus` and `childFocusDisabled` from the copied `m_Properties` and force `focusable: true`. Measured 2026-11-22: a copied node that keeps the template's `fnCanTakeFocus` reports `GetFocusable() = "none"` and the controller walks past it - this alone explained every "the node is in the tree but the pad skips it" case |
+| A copied node needs Steam's focus **stores**, not booleans | `m_Focused` and `m_FocusWithin` are subscribables with a `Set()` method (constructor `t`, `m_callbacks`, `m_currentValue`). `adopt()` used to write `false` there, so `node.BTakeFocus` threw `this.m_Focused.Set is not a function` - and one throw inside the traversal made the **whole focus group** unreachable. `makeFocusState()` now builds a fresh store from the template |
 | A clone of a native icon **inside** the row is the right shape | cloning the row's `Manage` element (same classes, same box) as the row's first child gives the native look, the native 10 px rhythm and a button that scrolls with the play bar (measured: after `scrollTop += 120`, both the clone and the controller icon move from y=367 to y=247). It only works together with the clean node above: at 0.9.0 the same DOM insert shipped with a `GetFocusable() = "none"` node and the **whole row** became unreachable, which misread as "the DOM insert breaks React". Put the node first in `m_rgChildren`, then `EnsureChildrenSorted()` |
 | The button must not be rebuilt on every Steam render | the keeper (400 ms) re-`adopt`s only when `nodeFor(button)` is empty, never re-creates the element: a new element would need a new node and lose the focus |
 
-**Focus movement cannot be simulated on this build** — do not pretend otherwise:
+**The D-pad can be simulated** — `plugins/scskiller/tools/pad-sim.mjs`:
 
-| Attempt | Result |
+```powershell
+node plugins/scskiller/tools/pad-sim.mjs --from Play right right right left left   # one line per press
+```
+
+| Fact | Observed value (2026-11-22) |
 | --- | --- |
-| `tree.TakeFocus(node)` | no effect (also no effect on native nodes) |
-| `NavigationManager.DispatchVirtualGamepad("vgp_onbuttondown", {button, source, is_repeat})` | no effect, whatever the button id (4-13 swept) |
-| what Steam really reads | `vgp_onbuttondown` / `vgp_onbuttonup` **CustomEvents** (`sp.js` module 54654; `DIR_UP=9, DIR_DOWN=10, DIR_LEFT=11, DIR_RIGHT=12`, `source` GAMEPAD = 1) |
-| dispatching those events by hand on the focused element, `body`, `document`, `window`, or the tree root | event fires, focus does not move (the handlers only trust real input) |
+| Entry point | `NavigationManager.DispatchVirtualGamepad("vgp_onbuttondown" / "vgp_onbuttonup", { button, source, is_repeat })`, `source: 1` = GAMEPAD |
+| Buttons (`sp.js`) | `DIR_UP = 9`, `DIR_DOWN = 10`, `DIR_LEFT = 11`, `DIR_RIGHT = 12`; A = 0, B = 1 |
+| Placing the focus first | `tree.TakeFocus(node)` works (it needs the tree to be the **active focus tree** and well-formed nodes) |
+| Why earlier presses did nothing | the traversal threw on the adopted node (`m_Focused.Set is not a function`); with a valid tree the presses move the focus exactly like the hardware |
+| Verified walk on the game page | `Play -> right: SCSKiller -> right: Configure Controller -> right: Manage -> left: Configure Controller -> left: SCSKiller -> left: Play` |
+| What the dispatcher rejects | a tree with `BIsGamepadInputSuppressed()`, or a button while `m_rgCatchAllGamepadInput` swallows the press |
 
-So the honest verification is structural (node in `m_rgChildren` of the row, sorted by geometry,
-`GetFocusable()`, DOM focusable) **plus** the `focus` / `blur` lines the plugin logs on the button:
-a controller test then leaves evidence in `homebrew/logs/<name>/`. Never claim a control is
-"gamepad reachable" from the tree alone, and never again ship a fabricated node as a fix without
-saying which part is unverified.
+Before claiming anything about the controller, run that walk; a "mouse only" or "not reachable" conclusion
+is no longer acceptable when the presses can be reproduced.
 
 ## 4. Anatomy of a plugin
 

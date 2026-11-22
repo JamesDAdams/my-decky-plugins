@@ -57,9 +57,9 @@ whose Steam remembers at least two accounts.
 
 ## Install
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.2.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.3.zip)
 
-1. Download `SteamSwitch-decky-0.1.2.zip` from `releases/`.
+1. Download `SteamSwitch-decky-0.1.3.zip` from `releases/`.
 2. Decky (`...` menu) -> **Install from zip file**.
 3. Restart Steam (Decky reloads plugins on start; the Python backend is not hot-reloaded).
 

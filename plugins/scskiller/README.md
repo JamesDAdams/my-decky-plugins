@@ -17,9 +17,9 @@ is a bridge, not a copy.
 
 ## Install
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.4.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.5.zip)
 
-1. Download the zip (`SCSKiller-decky-0.9.4.zip`).
+1. Download the zip (`SCSKiller-decky-0.9.5.zip`).
 2. Decky Loader -> gear icon -> **Install from zip file** -> select that zip.
 3. Restart Steam: Decky reloads the plugin's frontend, but its Python backend only starts on a Steam
    restart.
@@ -287,6 +287,18 @@ That last point is what made every earlier attempt fail: a copied node that keep
 group was enough to make the whole row unreachable from Play. Verified with the controller: the three
 icons of the row are reachable again and the button follows the play bar when the page scrolls (both
 the button and the controller icon move from y=367 to y=247 on a 120 px scroll).
+
+
+The walk is reproducible with the simulator in plugins/scskiller/tools/pad-sim.mjs:
+
+\\nnode plugins/scskiller/tools/pad-sim.mjs --from Play right right right left left left
+  right -> [SCSKILLER] SCSKiller @1151,367
+  right -> Configure Controller @1209,367
+  right -> Manage @1267,367
+  left  -> Configure Controller @1209,367
+  left  -> [SCSKILLER] SCSKiller @1151,367
+  left  -> Play @38,367
+\\n
 
 On the backend side:
 
