@@ -46,6 +46,16 @@ works** on the Steam client (verified through logs and CDP), not just code that 
     loader (giant Steam logo, stretches the flex row): use a text line (`working...`) and keep
     `flex: "0 0 auto"` on buttons. Custom `Focusable`s that must not show Steam's grey focus ring get
     `noFocusRing`.
+11. **Every control must be reachable with a controller.** Decky runs on a couch: a button the mouse
+    can click but the gamepad cannot focus is a bug, never an acceptable limitation. Steam's gamepad
+    focus comes from **navigation nodes** (`SteamUIStore.NavigationManager.m_ActiveContext` →
+    `m_rgGamepadNavigationTrees`, each node keeping its DOM element in `m_element`, its parent in
+    `m_Parent`, its children in `m_rgChildren`). A DOM clone appended to a native row, or a React
+    element whose node is registered under the page container instead of the row it is drawn over,
+    is **outside** that tree: the controller never lands on it. Verify with
+    `plugins/scskiller/tools/nav-audit.mjs` (it prints the focus parent of every navigable element)
+    and fix with the `src/navAdopt.ts` helpers (`moveUnder`, `adopt`). Never ship a documented
+    "mouse/keyboard only" caveat for a control you added.
 
 ## 3. Measured facts (Windows, Steam + Decky 3, November 2026)
 
@@ -112,6 +122,26 @@ routerHook.addPatch("/library/app/:appid", (tree) => {
 Reference implementation: `plugins/scskiller/` (`src/gamePageTree.tsx`, `src/ui/ScskButton.tsx`,
 `tools/cdp-*.mjs`).
 
+## 3c. Gamepad reachability — measured recipe
+
+A control added by a plugin is **not** reachable with a controller just because it is a `Focusable`
+and looks right. What decides is its **navigation node**:
+
+| Fact | Observed value (Windows, Steam + Decky 3, November 2026) |
+| --- | --- |
+| Nav trees | `SteamUIStore.NavigationManager.m_ActiveContext.m_rgGamepadNavigationTrees` (4 trees on the library, 10 on a game page) |
+| Node fields | `m_Tree`, `m_Parent`, `m_rgChildren`, `m_element`, `m_nDepth`, `m_bMounted`, `m_Focused`, `m_FocusWithin`, `m_rgFocusHandlers`, `m_rgNavigationHandlers` |
+| Where a plugin button lands | the overlay rendered by `routerHook.addPatch` registers under the **page container**, not the icon row: audited parent `_1SvpjsckP9cPRxO6gCBHrw Panel Focusable` instead of `_1thLDT_28YIf6OkgIb6n-4 Panel Focusable` (the icons group) |
+| Fix for a React button | `moveUnder(nodeFor(button), nodeFor(iconRow))`: the node keeps its element, only its focus parent changes → audited parent becomes the icons row, next to the controller and settings icons |
+| Icon row element | climb from `[aria-label="Configure Controller"]`: `parentElement.parentElement` (row > wrapper > icon) |
+| Fix for a DOM clone (account page) | the clone has **no** node at all: `adopt(clone, rowNode, nodeFor(nativeChangeAccountButton))` copies the native node (prototype + fields) and points it at the clone → audited parent becomes the account button row `_1K247zQ1_VKWvLhPUceiRB Panel Focusable` |
+| Left menu (MainMenu_uid2) | the rail lives in **another document** (`ownerDocument` of its nodes, `/routes/login`); each item is a 240 px `div.Panel.Focusable`; a plugin page object renders with the right look but **without** a node → `adopt(item, nodeFor(downloads).m_Parent, nodeFor(downloads))` |
+| Focus look | Steam paints the focused icon white with a dark glyph: using `noFocusRing` means the plugin must paint that state itself (`onFocus` → white background, dark glyph), otherwise a controller user sees nothing move |
+| Tools | `plugins/scskiller/tools/nav-audit.mjs` (lists navigable elements + their focus parent, `--text`, `--class`, `--near x,y`) and `nav-probe.mjs` (keyboard/gamepad direction probe) |
+
+Shared helper: `plugins/scskiller/src/navAdopt.ts` and `plugins/steamswitch/src/navAdopt.ts`
+(`navTrees`, `walkNodes`, `uiDocument`, `nodeFor`, `moveUnder`, `adopt`).
+
 ## 4. Anatomy of a plugin
 
 ```
@@ -171,7 +201,8 @@ every entry uses `/`.
 
 **Tooling**: `tools/` (CDP) — see `tools/README.md`. Plugin-specific helpers live next to their plugin
 (`plugins/scskiller/tools/cdp-eval.mjs`, `cdp-reload.mjs`, `cdp-inject.mjs`, `cdp-click.mjs`,
-`cdp-key.mjs`, `cdp-console.mjs`, `cdp-shot.mjs`). `tools/fix-mojibake.py` repairs the
+`cdp-key.mjs`, `cdp-console.mjs`, `cdp-shot.mjs`, `nav-audit.mjs`, `nav-probe.mjs`).
+`tools/fix-mojibake.py` repairs the
 UTF-8 → cp1252 → UTF-8 corruption that a PowerShell text pipeline leaves behind (see rule 9).
 
 **Repository**: `README.md` / `README.fr.md` (the plugin listing, English default), `assets/`

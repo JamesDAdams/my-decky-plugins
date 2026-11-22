@@ -38,7 +38,8 @@ going through Steam's sign-out screen:
 5. On the account settings page (`/routes/account`) the same helper is used with no game: a
    `Switch to <persona> account` button is cloned from Steam's own Change Account button and
    appended to that row, one button per other remembered account.
-6. The next Steam session shows a toast with the result: *Signed in as X; the game is
+6. The added buttons are DOM clones, so they are registered in Steam's gamepad navigation tree (`SteamUIStore.NavigationManager`) by copying the navigation node of the native Change Account button: the controller reaches them like any native button.
+7. The next Steam session shows a toast with the result: *Signed in as X; the game is
    starting.* (or *Signed in as X.* for an account-only switch), or the reason it did not
    complete.
 
@@ -56,9 +57,9 @@ whose Steam remembers at least two accounts.
 
 ## Install
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.0.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg" width="96" height="28" alt="Download SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.1.zip)
 
-1. Download `SteamSwitch-decky-0.1.0.zip` from `releases/`.
+1. Download `SteamSwitch-decky-0.1.1.zip` from `releases/`.
 2. Decky (`...` menu) -> **Install from zip file**.
 3. Restart Steam (Decky reloads plugins on start; the Python backend is not hot-reloaded).
 
@@ -77,7 +78,7 @@ its result. There is nothing to configure.
 | Steam Guard / expired session | Steam asks for the password; the helper reports `login-failed` and the next session shows why |
 | Switch already running | the click is refused with a toast, no second Steam restart |
 | A game is running | it is closed by the restart (Steam cannot switch account otherwise) |
-| Account page button with a gamepad | the added button answers mouse/keyboard; Steam's gamepad focus only knows its own React focusables (the game page button keeps gamepad focus because it replaces a native one) |
+| Account page button with a gamepad | works: the added button gets a navigation node copied from Steam's own Change Account button, so Left/Right reaches it exactly like the native buttons (measured with `plugins/scskiller/tools/nav-audit.mjs`) |
 | Not Windows (SteamOS, Linux) | the plugin loads, the button stays native, the QAM says it is unsupported |
 
 ## Development

@@ -37,7 +37,8 @@ passer par l'écran de déconnexion de Steam :
 5. Sur la page des paramètres du compte (`/routes/account`), le même helper est utilisé sans jeu : un
    bouton `Switch to <pseudo> account` est cloné depuis le bouton Change Account de Steam et ajouté à
    cette ligne, un bouton par autre compte mémorisé.
-6. La session Steam suivante affiche un toast avec le résultat : *Signed in as X; the game is
+6. Les boutons ajoutés sont des clones DOM : ils sont inscrits dans l'arbre de navigation manette de Steam (`SteamUIStore.NavigationManager`) en copiant le nœud du bouton natif Change Account, donc la manette les atteint comme n'importe quel bouton natif.
+7. La session Steam suivante affiche un toast avec le résultat : *Signed in as X; the game is
    starting.* (ou *Signed in as X.* pour un changement de compte seul), ou la raison pour laquelle
    l'opération n'a pas abouti.
 
@@ -55,9 +56,9 @@ Le même zip fonctionne sur n'importe quel PC Windows dont Steam mémorise au mo
 
 ## Installation
 
-[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.0.zip)
+[<img src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-fr.svg" width="96" height="28" alt="Télécharger SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.1.zip)
 
-1. Téléchargez `SteamSwitch-decky-0.1.0.zip` depuis `releases/`.
+1. Téléchargez `SteamSwitch-decky-0.1.1.zip` depuis `releases/`.
 2. Decky (menu `...`) -> **Install from zip file**.
 3. Redémarrez Steam (Decky recharge les plugins au démarrage ; le backend Python n'est pas rechargé à
    chaud).
@@ -77,7 +78,7 @@ et son résultat. Il n'y a rien à configurer.
 | Steam Guard / session expirée | Steam demande le mot de passe ; le helper signale `login-failed` et la session suivante explique pourquoi |
 | Changement déjà en cours | le clic est refusé avec un toast, pas de second redémarrage de Steam |
 | Un jeu est lancé | il est fermé par le redémarrage (Steam ne peut pas changer de compte autrement) |
-| Bouton de la page du compte à la manette | le bouton ajouté répond à la souris et au clavier ; le focus manette de Steam ne connaît que ses propres focusables React (le bouton de la page du jeu garde le focus manette, car il remplace un bouton natif) |
+| Bouton de la page du compte à la manette | fonctionne : le bouton reçoit un nœud de navigation copié de celui du bouton Change Account de Steam, donc gauche/droite l'atteint comme les boutons natifs (vérifié avec `plugins/scskiller/tools/nav-audit.mjs`) |
 | Pas Windows (SteamOS, Linux) | le plugin se charge, le bouton reste natif, le QAM indique que ce n'est pas pris en charge |
 
 ## Développement

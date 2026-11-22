@@ -3,6 +3,7 @@ import { staticClasses } from "@decky/ui";
 import { getStatus } from "./api";
 import { installMenuEntry, openPage } from "./bpmMenu";
 import { installGamePageButton } from "./gamePageTree";
+import { installGamepadFix } from "./gamepadFix";
 import { addMenuEntry, MENU_ROUTE } from "./menuEntry";
 import { appendJobLine, patchJob, setStatus } from "./store";
 import { decorateToastLogo } from "./toastLogo";
@@ -99,6 +100,8 @@ export default definePlugin(() => {
   const cleanupGamePage = installGamePageButton();
   const cleanupMenu = installMenuEntry(openPage);
   const cleanupTopBar = installTopBar(openPage);
+  // every control this plugin draws has to be reachable with a controller (AGENTS.md rule 11)
+  const cleanupGamepad = installGamepadFix();
 
   // full page + left-menu entry + top-right status icon (all three removeable on dismount)
   let menuInstalled = false;
@@ -122,6 +125,7 @@ export default definePlugin(() => {
       cleanupGamePage();
       cleanupMenu();
       cleanupTopBar();
+      cleanupGamepad();
       if (menuInstalled) {
         try {
           routerHook.removePatch("/", addMenuEntry);

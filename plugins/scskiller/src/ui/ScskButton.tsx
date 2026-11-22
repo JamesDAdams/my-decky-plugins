@@ -55,7 +55,8 @@ function plainId(value: unknown): string {
 export function ScskButton({ appid }: { appid: number }) {
   const state = useAppState();
   const status = state.statuses[String(appid)];
-  const [active, setActive] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const [focused, setFocused] = useState(false);
   const wasRunning = useRef(false);
 
   useEffect(() => {
@@ -114,13 +115,19 @@ export function ScskButton({ appid }: { appid: number }) {
 
   return (
     <Focusable
-      style={{ ...BUTTON, background: active ? BG_ACTIVE : BG }}
+      style={{
+        ...BUTTON,
+        // Steam paints the focused icon white and darkens the glyph; a controller user has to
+        // see the same thing on this button, hover is the softer grey only.
+        background: focused ? "#e6e8ea" : hovered ? BG_ACTIVE : BG,
+        color: focused ? "#16191d" : "#e6e8ea",
+      }}
       onActivate={() => open()}
       onClick={() => open()}
-      onMouseEnter={() => setActive(true)}
-      onMouseLeave={() => setActive(false)}
-      onFocus={() => setActive(true)}
-      onBlur={() => setActive(false)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
       onOKActionDescription="SCSKiller"
       noFocusRing
     >

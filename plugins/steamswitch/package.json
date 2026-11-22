@@ -1,6 +1,6 @@
 {
   "name": "steamswitch-decky",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Decky Loader plugin: Switch account & Play on a game owned by another Steam account",
   "type": "module",
   "scripts": {
@@ -23,7 +23,10 @@
   },
   "pnpm": {
     "peerDependencyRules": {
-      "ignoreMissing": ["react", "react-dom"]
+      "ignoreMissing": [
+        "react",
+        "react-dom"
+      ]
     }
   }
 }

@@ -2,6 +2,7 @@ import { executeInTab, routerHook } from "@decky/api";
 import { findInReactTree } from "@decky/ui";
 import { gameState, getStatus, type Account, type GameState } from "./api";
 import { report } from "./report";
+import { adoptAccountButtons } from "./gamepadFix";
 import { requestAccountSwitch, requestSwitch } from "./switchAction";
 
 /**
@@ -276,6 +277,8 @@ async function syncAccount(): Promise<void> {
   const result = asText(await jsRaw(script));
   mode = "account";
   activeGame = null;
+  // the buttons are DOM clones: give them a navigation node so the controller can reach them
+  adoptAccountButtons();
   if (result !== "ok" && result !== accountReported) {
     accountReported = result;
     report(`account page: ${result}`);

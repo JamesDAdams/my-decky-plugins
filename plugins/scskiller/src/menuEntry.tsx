@@ -53,14 +53,17 @@ export function addMenuEntry(route: RouteProps): RouteProps {
     const existing = pages.some((page) => page && typeof page === "object" && page.route === MENU_ROUTE);
     if (!existing) {
       const index = pages.findIndex((page) => typeof (page as any)?.route === "string" && /download/i.test(String((page as any).route)));
-      const entry: PageLike = {
-        title: "SCSKiller",
-        route: MENU_ROUTE,
-        icon: <MenuIcon />,
-        content: null,
-      };
+      // Steam's sidebar only wires the gamepad focus of the entries it builds from its own page
+      // objects: a hand-made object renders (icon + title) but never receives focus. Cloning the
+      // native Downloads entry keeps every field Steam expects and only overrides what differs.
+      const base = (index >= 0 ? pages[index] : pages[0]) as PageLike;
+      const entry: PageLike = { ...base, title: "SCSKiller", route: MENU_ROUTE, icon: <MenuIcon />, content: null };
+      delete (entry as any).link;
+      delete (entry as any).onSelected;
       pages.splice(index >= 0 ? index + 1 : pages.length, 0, entry);
-      report(`menu: entry added after ${index >= 0 ? "downloads" : "the last page"} - pages: ${describe(pages)}`);
+      report(
+        `menu: entry added after ${index >= 0 ? "downloads" : "the last page"} (base keys: ${Object.keys(base ?? {}).join(",")}) - pages: ${describe(pages)}`,
+      );
     }
   } catch (exc) {
     report(`menu: ${String(exc)}`);
