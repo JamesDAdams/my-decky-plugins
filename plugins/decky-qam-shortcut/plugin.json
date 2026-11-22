@@ -1,0 +1,11 @@
+{
+  "name": "DeckyShortcut",
+  "author": "JamesAdams",
+  "flags": ["debug"],
+  "api_version": 1,
+  "publish": {
+    "tags": ["ui", "shortcut", "quick-access"],
+    "description": "Affiche en bas de l'écran de Big Picture un rappel du raccourci qui ouvre le panneau Decky (Ctrl+2 au clavier/souris, bouton QAM en manette).",
+    "image": "https://opengraph.githubassets.com/1/SteamDeckHomebrew/decky-loader"
+  }
+}

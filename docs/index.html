@@ -1,0 +1,190 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My Decky plugins</title>
+<meta name="description" content="Decky Loader plugins for Steam Big Picture: shader precompilation, account switching and a Decky shortcut in the bottom bar.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#10151b">
+<link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+
+<div class="layout">
+
+  <aside class="sidebar">
+    <a class="brand" href="./">
+      <span class="mark" aria-hidden="true"></span>
+      <span class="brand-text">
+        <strong data-i18n="title">My Decky plugins</strong>
+        <em data-i18n="subtitle">Decky Loader plugins for Steam Big Picture, installed from a zip.</em>
+      </span>
+    </a>
+
+    <div class="lang" role="group" aria-label="Language / Langue">
+      <button type="button" data-lang="en" aria-pressed="true">EN</button>
+      <button type="button" data-lang="fr" aria-pressed="false">FR</button>
+    </div>
+
+    <nav class="nav" aria-label="Plugins / Plugins">
+      <button type="button" class="nav-item is-active" data-panel="decky-qam-shortcut" aria-current="page">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg></span>
+        <span class="nav-text">
+          <span class="nav-name" data-i18n="deckyshortcut.name">Decky shortcut</span>
+          <span class="nav-desc" data-i18n="deckyshortcut.navDesc">Steam Big Picture</span>
+        </span>
+      </button>
+      <button type="button" class="nav-item" data-panel="scskiller" aria-current="false">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg></span>
+        <span class="nav-text">
+          <span class="nav-name" data-i18n="scskiller.name">Shader precompile</span>
+          <span class="nav-desc" data-i18n="scskiller.navDesc">Steam Big Picture</span>
+        </span>
+      </button>
+      <button type="button" class="nav-item" data-panel="steamswitch" aria-current="false">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg></span>
+        <span class="nav-text">
+          <span class="nav-name" data-i18n="steamswitch.name">Switch account &amp; Play</span>
+          <span class="nav-desc" data-i18n="steamswitch.navDesc">Steam Big Picture</span>
+        </span>
+      </button>
+    </nav>
+
+    <div class="sidebar-foot">
+      <p data-i18n="footer">Source code, changelog and detailed README on GitHub.</p>
+      <a href="https://github.com/JamesDAdams/my-decky-plugins">github.com/JamesDAdams/my-decky-plugins</a>
+    </div>
+  </aside>
+
+  <main class="content">
+
+    <article class="panel" id="panel-decky-qam-shortcut" aria-labelledby="deckyshortcut-title">
+      <div class="shots">
+        <img class="shot wide" src="assets/footer-deckyshortcut.png" width="1000" height="238"
+             data-i18n-alt="deckyshortcut.alt"
+             alt="Ctrl+2 DECKY legend in Steam Big Picture's bottom bar, next to Esc BACK">
+      </div>
+
+      <div class="panel-body">
+        <div class="panel-head">
+          <h2 id="deckyshortcut-title">DeckyShortcut</h2>
+          <span class="tag">Big Picture</span>
+        </div>
+
+        <p class="lead" data-i18n="deckyshortcut.desc">Adds Ctrl+2 DECKY to the bottom shortcut bar, immediately left of F9 OPTIONS, and opens the Decky panel from the keyboard, the mouse or a click on the legend.</p>
+
+        <ul class="feats">
+          <li data-i18n="deckyshortcut.f1">The legend is a clone of Steam's own legends: same markup, same font, same spacing, so Valve's visual updates apply to it too.</li>
+          <li data-i18n="deckyshortcut.f2">Ctrl+2 or a click toggles the Decky tab of the Quick Access Menu, and the legend is re-inserted whenever Steam rebuilds its bar.</li>
+          <li data-i18n="deckyshortcut.f3">Nothing is patched in Steam and no file is modified: the legend is cloned at runtime inside the visible Big Picture window.</li>
+        </ul>
+
+        <div class="actions">
+          <a class="btn"
+             href="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/decky-qam-shortcut-2.1.1.zip"
+             data-i18n="download">Download</a>
+          <a class="btn ghost"
+             href="https://github.com/JamesDAdams/my-decky-plugins/tree/main/plugins/decky-qam-shortcut"
+             data-i18n="details">Details</a>
+        </div>
+
+        <p class="meta">
+          <span class="dot" aria-hidden="true"></span>
+          <span data-i18n="deckyshortcut.meta">Keyboard and mouse; Big Picture only</span>
+          <span class="sep" aria-hidden="true">·</span>
+          <span class="version" data-version-src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/plugins/decky-qam-shortcut/package.json">v2.1.1</span>
+        </p>
+      </div>
+    </article>
+
+    <article class="panel" id="panel-scskiller" aria-labelledby="scskiller-title" hidden>
+      <div class="shots">
+        <img class="shot wide" src="assets/game-page-compiling.png" width="1000" height="246"
+             data-i18n-alt="scskiller.alt"
+             alt="Steam game page with the SCSKiller button left of the controller icon">
+      </div>
+
+      <div class="panel-body">
+        <div class="panel-head">
+          <h2 id="scskiller-title">SCSKiller</h2>
+          <span class="tag">Big Picture</span>
+        </div>
+
+        <p class="lead" data-i18n="scskiller.desc">Bridges the SCSKiller Windows app into Steam: a shader-compile button on the game page, next to Steam's own icons, and a Quick Access Menu page to start, watch and stop the compile.</p>
+
+        <ul class="feats">
+          <li data-i18n="scskiller.f1">A 48x48 button exactly 8&nbsp;px left of the controller icon, with the SCSKiller badge and a green or red dot for compiled / to compile.</li>
+          <li data-i18n="scskiller.f2">Clicking it opens the numbers SCSKiller reports: shaders, pipelines, cache on disk, estimate, last compile, plus Compile, Stop and Refresh.</li>
+          <li data-i18n="scskiller.f3">The plugin ships no binary: it calls the scskiller.exe already installed and reads its games.json. The QAM page lists the queue with live progress.</li>
+        </ul>
+
+        <div class="actions">
+          <a class="btn"
+             href="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.8.2.zip"
+             data-i18n="download">Download</a>
+          <a class="btn ghost"
+             href="https://github.com/JamesDAdams/my-decky-plugins/tree/main/plugins/scskiller"
+             data-i18n="details">Details</a>
+        </div>
+
+        <p class="meta">
+          <span class="dot" aria-hidden="true"></span>
+          <span data-i18n="scskiller.meta">Windows; SCSKiller installed</span>
+          <span class="sep" aria-hidden="true">·</span>
+          <span class="version" data-version-src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/plugins/scskiller/package.json">v0.8.2</span>
+        </p>
+      </div>
+    </article>
+
+    <article class="panel" id="panel-steamswitch" aria-labelledby="steamswitch-title" hidden>
+      <div class="shots">
+        <img class="shot wide" src="assets/game-page-switch.png" width="1000" height="129"
+             data-i18n-alt="steamswitch.alt"
+             alt="Borrow button replaced by Switch account &amp; Play on a Steam game page">
+      </div>
+
+      <div class="panel-body">
+        <div class="panel-head">
+          <h2 id="steamswitch-title">SteamSwitch</h2>
+          <span class="tag">Big Picture</span>
+        </div>
+
+        <p class="lead" data-i18n="steamswitch.desc">When a game belongs to another Steam account remembered on this PC, Steam shows Borrow. This plugin turns it into Switch account &amp; Play: Steam restarts signed into the owning account and launches the game there.</p>
+
+        <ul class="feats">
+          <li data-i18n="steamswitch.f1">Steam's own button is rewritten in place - label, click and gamepad activation - so its size, colour, hover and focus stay untouched.</li>
+          <li data-i18n="steamswitch.f2">One detached helper quits Steam, sets the auto-login account in loginusers.vdf and in the registry, restarts in Big Picture and waits for the right account before launching the game.</li>
+          <li data-i18n="steamswitch.f3">A second button on the account settings page switches account without the sign-out screen. No account is hard-coded: names and ids come from the local Steam install.</li>
+        </ul>
+
+        <div class="actions">
+          <a class="btn"
+             href="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.0.zip"
+             data-i18n="download">Download</a>
+          <a class="btn ghost"
+             href="https://github.com/JamesDAdams/my-decky-plugins/tree/main/plugins/steamswitch"
+             data-i18n="details">Details</a>
+        </div>
+
+        <p class="meta">
+          <span class="dot" aria-hidden="true"></span>
+          <span data-i18n="steamswitch.meta">Windows; two accounts remembered on the PC</span>
+          <span class="sep" aria-hidden="true">·</span>
+          <span class="version" data-version-src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/plugins/steamswitch/package.json">v0.1.0</span>
+        </p>
+      </div>
+    </article>
+
+    <section class="help">
+      <h2 data-i18n="help.title">No Decky Loader yet?</h2>
+      <p data-i18n="help.text">A plugin is a zip file: install Decky Loader, open its menu, choose Install from zip file and pick the download. Without Decky nothing is installed - the sources are plain TypeScript and Python.</p>
+      <a class="btn ghost" href="https://decky.xyz/" data-i18n="help.btn">Get Decky Loader</a>
+    </section>
+
+  </main>
+
+</div>
+<script src="app.js?v=1"></script>
+</body>
+</html>

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Decky Plugin"
+  short_description: "Build and ship a Decky Loader plugin"
+  default_prompt: "Use $decky-plugin to create or modify this Decky plugin, then verify it on the machine."

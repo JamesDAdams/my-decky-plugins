@@ -1,0 +1,197 @@
+import { executeInTab } from "@decky/api";
+import { report } from "./api";
+
+/**
+ * Big Picture's left menu (Home / Library / Store / ... / Downloads / Settings / Power) is NOT
+ * part of the "Steam Big Picture Mode" window: it lives in its own CEF window, whose title is
+ * `MainMenu_uid<N>` (the N changes when Steam restarts). Its list is React-managed and not
+ * exposed through routerHook, so the entry is a clone of the "Downloads" item, inserted right
+ * after it, and a click is reported back to this realm through a counter.
+ */
+
+const PAGE_ROUTE = "/scskiller";
+const BPM = "Steam Big Picture Mode";
+
+const INSTALL = `(() => {
+  if (window.__scskMenuInstalled) return "already";
+  window.__scskMenuInstalled = true;
+  window.__scskMenuClicks = window.__scskMenuClicks || 0;
+
+  const labelIn = (root) => {
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode();
+    while (node) {
+      if ((node.textContent || "").trim() === "Downloads") return node;
+      node = walker.nextNode();
+    }
+    return null;
+  };
+
+  const insert = () => {
+    const leaves = Array.from(document.querySelectorAll("div, span")).filter(
+      (el) => el.children.length === 0 && (el.textContent || "").trim() === "Downloads",
+    );
+    if (!leaves.length) return "no-downloads";
+    const leaf = leaves[0];
+
+    // the label sits inside an icon+label row: climb until the siblings are menu ROWS
+    // (the one after Downloads contains "Settings"), otherwise the clone lands sideways
+    let row = leaf;
+    for (let depth = 0; depth < 7; depth++) {
+      const parent = row.parentElement;
+      if (!parent) break;
+      const siblings = Array.from(parent.children).filter((node) => node !== row);
+      if (siblings.some((node) => /Settings/.test(node.textContent || ""))) break;
+      row = parent;
+    }
+    if (!row || !row.parentElement) return "no-item";
+
+    const existing = document.querySelector("[data-scsk-menu]");
+    if (existing) {
+      if (existing.parentElement === row.parentElement) return "present";
+      existing.remove(); // a previous build inserted it at the wrong level
+    }
+
+    const clone = row.cloneNode(true);
+    clone.setAttribute("data-scsk-menu", "1");
+    clone.setAttribute("tabindex", "0");
+    const text = labelIn(clone);
+    if (!text) return "no-label";
+    text.textContent = "SCSKiller";
+    // Steam's icons are a 36x36 svg with several paths (the download one even nests a second
+    // svg): replacing one path leaves the others, so swap the whole glyph for our bolt, scaled
+    // from the 24x24 canvas to 36x36.
+    const svg = clone.querySelector("svg");
+    if (svg) {
+      const ns = "http://www.w3.org/2000/svg";
+      const glyph = document.createElementNS(ns, "svg");
+      glyph.setAttribute("xmlns", ns);
+      glyph.setAttribute("viewBox", "0 0 36 36");
+      glyph.setAttribute("fill", "none");
+      if (svg.getAttribute("width")) glyph.setAttribute("width", svg.getAttribute("width"));
+      if (svg.getAttribute("height")) glyph.setAttribute("height", svg.getAttribute("height"));
+      if (svg.getAttribute("class")) glyph.setAttribute("class", svg.getAttribute("class"));
+      const path = document.createElementNS(ns, "path");
+      path.setAttribute(
+        "d",
+        "M19.5 3 6.75 19.8c-.6.75 0 1.95.9 1.95H15l-1.5 11.25L29.25 15c.6-.75 0-1.95-.9-1.95H21l1.5-10.05Z",
+      );
+      path.setAttribute("fill", "currentColor");
+      glyph.appendChild(path);
+      svg.replaceWith(glyph);
+    }
+    clone.addEventListener("click", (event) => {
+      event.stopPropagation();
+      window.__scskMenuClicks += 1;
+    });
+    row.parentElement.insertBefore(clone, row.nextSibling);
+    return "inserted";
+  };
+
+  const observer = new MutationObserver(() => insert());
+  observer.observe(document.body, { childList: true, subtree: true });
+  window.__scskMenuOff = () => {
+    observer.disconnect();
+    const node = document.querySelector("[data-scsk-menu]");
+    if (node) node.remove();
+    window.__scskMenuInstalled = false;
+  };
+  insert();
+  window.__scskMenuTick = setInterval(insert, 700);
+  return "installed";
+})()`;
+
+/** The menu window title carries a counter: read the CEF target list, fall back to probing. */
+async function menuTitle(): Promise<string | null> {
+  try {
+    const response = await fetch("http://localhost:8080/json");
+    const targets = (await response.json()) as { title?: string }[];
+    const found = targets.map((target) => target.title ?? "").find((title) => title.startsWith("MainMenu"));
+    if (found) return found;
+  } catch {
+    // the plugin realm is usually not allowed to read the debug endpoint
+  }
+  // executeInTab needs the exact title and Steam numbers it: probe the plausible ones
+  for (let index = 2; index <= 24; index++) {
+    const candidate = `MainMenu_uid${index}`;
+    try {
+      const reply: any = await executeInTab(candidate, false, "1");
+      if (reply?.success !== false) return candidate;
+    } catch {
+      // not this one
+    }
+  }
+  return null;
+}
+
+export function installMenuEntry(open: () => void): () => void {
+  let stopped = false;
+  let seen = 0;
+  let title: string | null = null;
+  let ticks = 0;
+
+  const ping = async () => {
+    if (stopped) return;
+    if (!title) {
+      title = await menuTitle();
+      if (!title) return;
+      report(`menu: window is ${title}`);
+    }
+    try {
+      // keep the entry alive (Steam re-renders the list) without hammering the window
+      if (ticks % 8 === 0) {
+        const res: any = await executeInTab(title, false, INSTALL);
+        const state = String(res?.result ?? "");
+        if (state === "installed") report("menu: entry injected under Downloads");
+      }
+      // the click itself is polled fast: it is what makes the page feel instant
+      const clicksReply: any = await executeInTab(title, false, "String(window.__scskMenuClicks || 0)");
+      const clicks = Number(clicksReply?.result ?? 0);
+      if (clicks > seen) {
+        seen = clicks;
+        open();
+      }
+    } catch {
+      title = null; // Steam restarted: resolve the new window name
+    }
+    ticks += 1;
+  };
+
+  ping();
+  const timer = window.setInterval(ping, 250);
+  return () => {
+    stopped = true;
+    window.clearInterval(timer);
+    if (title) {
+      try {
+        void executeInTab(title, false, "window.__scskMenuOff && window.__scskMenuOff()");
+      } catch {
+        // window gone
+      }
+    }
+  };
+}
+
+/** Close Steam's side menus (the left menu stays open otherwise, a clone has no handler). */
+function closeSideMenus(): void {
+  try {
+    const store = (window as any).SteamUIStore;
+    const instance =
+      (store?.GetFocusedWindowInstance && store.GetFocusedWindowInstance()) ||
+      store?.WindowStore?.GamepadUIMainWindowInstance;
+    instance?.MenuStore?.CloseSideMenus?.();
+  } catch {
+    // the menu closes on its own if the store moved
+  }
+}
+
+/** The router follows the history of this realm (verified with a manual pushState). */
+export function openPage(): void {
+  closeSideMenus();
+  try {
+    window.history.pushState({}, "", PAGE_ROUTE);
+    window.dispatchEvent(new PopStateEvent("popstate", { state: {} }));
+  } catch (exc) {
+    report(`page: could not navigate: ${String(exc)}`);
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "name": "SCSKiller",
+  "author": "SCSKiller Decky plugin contributors",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["shaders", "stutter", "utility"],
+    "description": "Shows SCSKiller's shader-compile status for the game you are looking at, and compiles it from the game's page.",
+    "image": "https://raw.githubusercontent.com/BlueHeisenberg/SCSKiller/main/.github/assets/logo.png"
+  }
+}

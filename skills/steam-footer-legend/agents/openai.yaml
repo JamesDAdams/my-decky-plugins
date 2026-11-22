@@ -1,0 +1,4 @@
+interface:
+  display_name: "Steam Footer Legend"
+  short_description: "Native-looking button in the right place of the bottom bar"
+  default_prompt: "Use $steam-footer-legend to add this shortcut to the Big Picture bottom bar, with the native look, left of F9 OPTIONS."

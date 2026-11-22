@@ -1,0 +1,17 @@
+# Build output and dependencies: rebuilt from source with npm / rollup
+dist/
+node_modules/
+.rollup.cache/
+__pycache__/
+*.pyc
+
+# Local scratch
+.push-probe
+plugins/scskiller/shots
+releases/legacy/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

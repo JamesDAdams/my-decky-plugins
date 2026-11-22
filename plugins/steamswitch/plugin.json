@@ -1,0 +1,11 @@
+{
+  "name": "SteamSwitch",
+  "author": "Steam Switch Decky plugin contributors",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["utility", "family-sharing"],
+    "description": "On a game owned by another Steam account, replaces the Borrow button with Switch account & Play: signs the client into the owning account and launches the game there.",
+    "image": ""
+  }
+}

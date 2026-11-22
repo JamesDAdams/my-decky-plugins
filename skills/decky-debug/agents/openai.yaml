@@ -1,0 +1,4 @@
+interface:
+  display_name: "Decky Debug"
+  short_description: "Diagnose an invisible or silent Decky plugin"
+  default_prompt: "Use $decky-debug to find out why this Decky plugin does not show up or does not react."
