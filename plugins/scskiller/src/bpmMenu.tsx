@@ -54,14 +54,24 @@ const INSTALL = `(() => {
 
     const clone = row.cloneNode(true);
     clone.setAttribute("data-scsk-menu", "1");
-    clone.setAttribute("tabindex", "0");
-    const text = labelIn(clone);
+    // The climb above stops on the wrapper Steam puts around each entry, not always on the row
+    // itself: the element the controller focuses is the role=menuitem node inside. Everything the
+    // user sees or presses (label, aria, listeners, painting) has to go on THAT element, otherwise
+    // the focus lands on an inner row that has no handler (measured 2026-11-22: the focus reached
+    // the entry, A did nothing, and the row stayed grey).
+    const menuitem = clone.matches('[role="menuitem"]') ? clone : clone.querySelector('[role="menuitem"]');
+    const control = menuitem || clone;
+    control.setAttribute("data-scsk-menu-item", "1");
+    control.setAttribute("tabindex", "0");
+    // the clone copies the aria-label of "Downloads"
+    control.setAttribute("aria-label", "SCSKiller");
+    const text = labelIn(control);
     if (!text) return "no-label";
     text.textContent = "SCSKiller";
     // Steam's icons are a 36x36 svg with several paths (the download one even nests a second
     // svg): replacing one path leaves the others, so swap the whole glyph for our bolt, scaled
     // from the 24x24 canvas to 36x36.
-    const svg = clone.querySelector("svg");
+    const svg = control.querySelector("svg");
     if (svg) {
       const ns = "http://www.w3.org/2000/svg";
       const glyph = document.createElementNS(ns, "svg");
@@ -80,10 +90,38 @@ const INSTALL = `(() => {
       glyph.appendChild(path);
       svg.replaceWith(glyph);
     }
-    clone.addEventListener("click", (event) => {
-      event.stopPropagation();
+    // A clone has no React state: Steam paints its own items from state, so a focused clone looks
+    // exactly like an unfocused one and the user reports "I cannot select SCSKiller". The look is
+    // painted here, from the measured values of a focused native item (background
+    // rgba(255,255,255,0.2), white label, blue #1a9fff bar at the left).
+    clone.classList.remove("gpfocus", "gpfocuswithin");
+    control.classList.remove("gpfocus", "gpfocuswithin");
+    const label = text.parentElement;
+    let bar = null;
+    const paint = (on) => {
+      control.style.background = on ? "rgba(255,255,255,0.2)" : "";
+      // the glyph uses fill="currentColor", so the white has to reach the item itself
+      control.style.color = on ? "#ffffff" : "";
+      if (label) label.style.color = on ? "#ffffff" : "";
+      if (on && !bar) {
+        bar = document.createElement("div");
+        bar.style.cssText = "width:10px;height:50%;flex:0 0 auto;background:#1a9fff;border-radius:1px";
+        control.insertBefore(bar, control.firstChild);
+      } else if (!on && bar) {
+        bar.remove();
+        bar = null;
+      }
+    };
+    control.addEventListener("focus", () => paint(true));
+    control.addEventListener("blur", () => paint(false));
+    // Steam activates the element the gamepad focus sits on by dispatching vgp_onok on it; a
+    // clone has no Focusable handler, so A did nothing (measured 2026-11-22: the focus reached
+    // this entry, A was silent, the mouse click worked).
+    const activate = () => {
       window.__scskMenuClicks += 1;
-    });
+    };
+    control.addEventListener("vgp_onok", activate);
+    control.addEventListener("click", activate);
     row.parentElement.insertBefore(clone, row.nextSibling);
     return "inserted";
   };

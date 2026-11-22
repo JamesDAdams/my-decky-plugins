@@ -54,9 +54,10 @@ Surface by surface:
 | Game page row (48×48 icon) | clone a native icon of the row, `adopt()` its node, `vgp_onok` listener, `:focus` painting, `fill` forced dark (§4) | node under the page container; invisible glyph on white |
 | Full-page route (`routerHook.addRoute`) | build the page out of `Focusable`s; give the page at least one control, and `autoFocus` the first one | nothing focusable → the pad does nothing (only B works) |
 | QAM panel (`content:`) | `Focusable` per control, `autoFocus` on the tab or the first button: **measured**, after selecting the plugin entry the panel opened with `m_lastFocusNode = null` until a control carried `autoFocus` | focus lost on open, the panel feels dead |
+| QAM list rows (one line + one button) | wrap **each row** in a horizontal `Focusable` (nested `Focusable`s are fine, contrary to an older note: measured node `GetFocusable() = "children"`, `GetLayout() = 2`, children = `[label, button]`); Up/Down then walks the rows, Right enters the row | flattened siblings: measured 40 children under one vertical container, so Down went label → button → next label (reported as "down should change game, right should reach Compile") |
 | Modal dialog (`showModal`) | footer = horizontal `Focusable`, one `Focusable` per button, `:focus` painted (§7) | only up/down moves, selection invisible |
 | Injected DOM (icon row of another window, top bar, overlay, account button) | the injected code has no `SteamUIStore`: the plugin context must adopt the node from a native neighbour **and** the injected code must paint its own focus + answer `vgp_onok` (measured: the account-page clone was reachable but looked identical focused, and A did nothing, because a clone has neither React state nor a Focusable handler) | mouse-only control, or a control that works and looks dead |
-| Left rail entry | the page object renders without a node → `adopt(item, nodeFor(downloads).m_Parent, nodeFor(downloads))`, then run the walk in the rail tree | entry visible, unreachable |
+| Left rail entry (DOM clone in `MainMenu_uid*`) | `adopt()` the **`[role="menuitem"]` inside** the injected clone (that is the element Steam focuses, not the wrapper), paint its focus, answer `vgp_onok`; measured focused look: `background rgba(255,255,255,0.2)`, white label and glyph, `10px` `#1a9fff` bar as first child | focus lands on a row that has no handler: grey, and A silent |
 
 ## 3. Why a plugin control usually is not reachable
 
@@ -69,6 +70,9 @@ Surface by surface:
 | The node list order does not match the DOM | traversal enters the row in the wrong order | `unshift` the node in `m_rgChildren`, then `EnsureChildrenSorted()` |
 | The cloned element does not answer the controller | Steam activates the focused element by dispatching **`vgp_onok`** on it (it is the listener every native `Focusable` registers); a cloned DOM element has none, so A does nothing while the mouse click works | add `button.addEventListener("vgp_onok", open)` (and `vgp_onsecondaryaction`) next to the click handler |
 | The focused glyph vanishes on a white box | the native class colours the **`svg`** white with a stronger selector than the button's `color`, so `:focus{background:white}` gives a white glyph on white (measured: computed `fill: rgb(255,255,255)` while focused) | force it: `[data-x]:focus svg, [data-x]:focus svg path { color:#16191d!important; fill:#16191d!important }` |
+| A node of the group points at a **detached** element (the clone was rebuilt after a Steam re-render) | the whole group stops moving: measured, six `down` presses left the focus on `Home`; the node still answers `GetFocusable() = "self"` with a `0,0` rect | before re-adopting, prune the group's children whose `m_element.isConnected === false`, then insert the new node at the DOM position and `EnsureChildrenSorted()` |
+| The cloned wrapper is not the element Steam focuses | the clone looks right but the node points at the inner `[role="menuitem"]`: focus lands, the row stays grey, A does nothing | put aria/listeners/painting on the inner menuitem (`clone.querySelector('[role="menuitem"]')`), keep `data-*` on the wrapper for lookups |
+| Steam's **screensaver** is running (`Screensaver_uid2` target) | every press does nothing, the focus never moves, and a desktop capture is black | it is not your code: send a real OS input (`tools/wake-steam.ps1`, one Shift press) and check `http://localhost:8080/json` no longer lists `Screensaver_uid2` |
 
 `adopt()` in `plugins/scskiller/src/navAdopt.ts` (and the `steamswitch` copy) implements all of this.
 Use it; do not hand-roll a node.
@@ -124,6 +128,19 @@ Object.keys(node.m_Properties)              // focusable, fnCanTakeFocus, childF
 
 ## 6. The simulator: prove the walk yourself
 
+Three things must be true before a press can move anything — check them in this order, it saves hours:
+
+```powershell
+powershell -File tools/wake-steam.ps1        # 1. no Screensaver_uid2 target (it swallows every press)
+powershell -File tools/focus-bp.ps1          # 2. Steam Big Picture Mode is the foreground window
+node tools/cdp.mjs SharedJSContext tools/open-main-menu.js   # 3. the surface you walk is the OPEN one
+```
+
+`MenuStore.GetOpenSideMenu()` answers `0` (none), `1` (main menu) or `2` (quick access). `OpenMainMenu()`
+does **nothing** while the QAM is open: the QAM keeps the active focus tree, the rail nodes stay
+inactive, `TakeFocus` silently fails and every press is a no-op (measured 2026-11-22). Always close
+first, then open.
+
 ```powershell
 node tools/pad-sim.mjs                                   # where is the focus?
 node tools/pad-sim.mjs --from Play right right right left left left
@@ -150,6 +167,25 @@ from Play: Play @38,367
 
 If presses do nothing: check `manager.GetEventTarget(12, 1, true)` returns `[element, tree]`,
 `tree.BIsGamepadInputSuppressed()` is false, and the focused node is well formed (§3).
+
+Two more verified walks (SCSKiller 0.9.11, 2026-11-22):
+
+```
+# QAM Games tab: one row per press, Right reaches that row's button
+from Games: Games @54,70
+  down  -> Setup @111,70
+  down  -> Refresh @56,133
+  down  -> Dead by Daylight @90,211
+  right -> Compile @258,210
+  left  -> Dead by Daylight @90,211
+  down  -> Escape the Backrooms @90,247     (the next game, not the previous Compile)
+
+# left rail: the injected entry is reachable and A opens the page
+from Home: Home @-3,163
+  down x5 -> Downloads @-3,403
+  down    -> SCSKiller @0,453               (painted: white label, blue bar)
+  ok      -> route /routes/scskiller, side menu closed
+```
 
 ## 7. Inside a modal dialog (`showModal`, Steam dialog)
 
@@ -204,6 +240,8 @@ A surface is done when all of these are true — not when it compiles, and not w
 - [ ] `vgp_onok` wired for anything that is not a real `Focusable`
 - [ ] the walk has been replayed with `pad-sim.mjs` on **that** surface, including one `ok` on each
       action, and the output is pasted in the commit/summary
+- [ ] a list gives one press per row (Up/Down) and reaches the row's button with Right/Left
+- [ ] the left-rail entry is walked **and activated** (`ok` changes the route), not just focused
 - [ ] the log shows `focus: ...` lines for the surface during the walk
 - [ ] anything still mouse-only is written down (file + line) instead of being quietly shipped
 

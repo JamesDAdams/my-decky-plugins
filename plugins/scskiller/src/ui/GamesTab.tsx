@@ -102,9 +102,9 @@ export function GamesTab({
               A = details | Compile starts SCSKiller with the game closed
             </div>
           ) : (
-            // the QAM navigates vertically: down walks tabs, rows and the Compile buttons
+            // the QAM navigates one row per press: up/down = games, right = that row's button
             <div style={{ marginTop: 8, fontSize: 9.5, color: COLORS.faint, fontFamily: MONO, lineHeight: 1.5 }}>
-              A = stats on a row - down = its Compile button
+              A = stats on a row - right = its Compile button
             </div>
           )}
         </>

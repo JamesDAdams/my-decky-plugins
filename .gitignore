@@ -8,6 +8,7 @@ __pycache__/
 # Local scratch
 .push-probe
 plugins/scskiller/shots
+shots/
 releases/legacy/
 
 # OS / editor

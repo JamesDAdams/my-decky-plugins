@@ -177,15 +177,19 @@ export function GameRow({
   };
 
   if (!wide) {
-    // Narrow panel. Two SIBLING focusables: the text block (A = stats) and the Compile
-    // button. Nested focusables are not reachable by Steam's gamepad navigation, so the
-    // button must not live inside the row's focusable element.
+    // Narrow panel: one row = one HORIZONTAL focus group holding two focusables, the text
+    // block (A = stats) and the Compile button. That is the shape Steam's own lists use (the
+    // play bar's icon row is group -> buttons): Up/Down walks the games, Right enters the row
+    // to the Compile button, Left comes back. Flattened siblings in the vertical QAM
+    // container instead made Up/Down jump text -> Compile -> next text (measured: 40 flat
+    // children under one column node).
     return (
-      <div
-        onClick={onDetails}
+      <Focusable
+        noFocusRing
         {...focus}
         style={{
           display: "flex",
+          flexDirection: "row",
           alignItems: "center",
           gap: 6,
           width: "100%",
@@ -256,7 +260,7 @@ export function GameRow({
           onCompile={onCompile}
           onStop={onStop}
         />
-      </div>
+      </Focusable>
     );
   }
 

@@ -148,7 +148,7 @@ and looks right. What decides is its **navigation node**:
 | Fix for a React button | `moveUnder(nodeFor(button), nodeFor(iconRow))`: the node keeps its element, only its focus parent changes → audited parent becomes the icons row, next to the controller and settings icons. Two measured conditions: the node needs `m_Properties.focusable = true` (`GetFocusable()` filters on it, otherwise the node stays in the tree and the D-pad walks past it), and the element must **not re-render** - a re-render re-registers the node under the page container, so the button is state-free (CSS `:hover`/`:focus`, dot painted straight on the DOM) and a 150 ms keeper re-moves the node if it ever drifts |
 | Icon row element | climb from `[aria-label="Configure Controller"]`: `parentElement.parentElement` (row > wrapper > icon) |
 | Fix for a DOM clone (account page) | the clone has **no** node at all: `adopt(clone, rowNode, nodeFor(nativeChangeAccountButton))` copies the native node (prototype + fields) and points it at the clone → audited parent becomes the account button row `_1K247zQ1_VKWvLhPUceiRB Panel Focusable` |
-| Left menu (MainMenu_uid2) | the rail lives in **another document** (`ownerDocument` of its nodes, `/routes/login`); each item is a 240 px `div.Panel.Focusable`; a plugin page object renders with the right look but **without** a node → `adopt(item, nodeFor(downloads).m_Parent, nodeFor(downloads))` |
+| Left menu (`MainMenu_uid*`) | the rail lives in **another document** (`ownerDocument` of its nodes, `/routes/login`); the entry is a **DOM clone** of the Downloads row injected by `bpmMenu.ts` (`data-scsk-menu` on the cloned wrapper, `data-scsk-menu-item` on the inner `[role="menuitem"]`), and Steam focuses that inner row: `adopt(item, nodeFor(downloads).m_Parent, nodeFor(downloads))`. Measured focused look of a native item (to paint on the clone): `background rgba(255,255,255,0.2)`, white label and glyph, `10px` `#1a9fff` bar inserted as first child |
 | Focus look | Steam paints the focused icon white with a dark glyph: using `noFocusRing` means the plugin must paint that state itself (`onFocus` → white background, dark glyph), otherwise a controller user sees nothing move |
 | Tools | `plugins/scskiller/tools/nav-audit.mjs` (lists navigable elements + their focus parent, `--text`, `--class`, `--near x,y`), `nav-press.mjs` (D-pad buttons and the event Steam reads), `probe-icon.js` / `probe-row-node.js` (the icons row: geometry, fiber chain, nav node) |
 
@@ -171,6 +171,9 @@ Going through the route patcher does **not** reach that row, and this is the imp
 | The button must not be rebuilt on every Steam render | the keeper (400 ms) re-`adopt`s only when `nodeFor(button)` is empty, never re-creates the element: a new element would need a new node and lose the focus |
 | A dialog's button row must be a horizontal `Focusable` | a Steam dialog is its own nav tree (`ModalDialogOverlay_Modal_<n>`, active focus tree) but its content container is **vertical** (`GetLayout() = 1`, `flexDirection: column`); a plain `div` footer is not a nav node, so its buttons became children of that vertical container and only up/down moved between them (left/right did nothing - reported as "the pad cannot select the buttons"). Wrapping the footer in `<Focusable style={{display:"flex", flexDirection:"row"}}>` fixes it: measured `Refresh -> right: Warmed -> right: Close -> A: closed, focus back on the page` |
 | A focused control must *look* focused | `noFocusRing` + a custom `style` makes a button identical focused and unfocused: the pad moves (the focus log proves it) and the user still reports "the pad cannot select". Paint it: `.<class>:focus{background:#e6e8ea!important;color:#16191d!important}`. Check with a screenshot of the focused state, not just the nav tree |
+| A QAM list needs **one horizontal group per row** | nested `Focusable`s do work (an older comment in `GameRow` claimed otherwise): wrapping the row in `<Focusable style={{display:"flex",flexDirection:"row"}}>` gives a node with `GetFocusable() = "children"`, `GetLayout() = 2`, children `[game (self), Compile (self)]` → measured `down: Dead by Daylight -> right: Compile -> left: row -> down: next game`. Before, the QAM's vertical container had **40 flat children** and Down walked label -> button -> next label |
+| A node whose element is **detached** freezes the whole group | measured: six `down` presses in the rail left the focus on `Home`; the offending node answered `GetFocusable() = "self"` with a `0,0` rect (its clone had been rebuilt). Prune the group's children whose `m_element.isConnected === false` before re-adopting, then re-insert the node at the DOM position |
+| A DOM-clone rail entry is focused on its **inner `[role="menuitem"]`** | the clone of the Downloads row can be a *wrapper*: `clone.matches('[role="menuitem"]')` is false and the focused element is `clone.querySelector('[role="menuitem"]')`. Listeners, `aria-label`, `vgp_onok` and the focus painting must go **there** (measured: otherwise the focus lands, the row stays grey and A does nothing) |
 
 **The D-pad can be simulated** — `plugins/scskiller/tools/pad-sim.mjs`:
 
@@ -187,6 +190,7 @@ node plugins/scskiller/tools/pad-sim.mjs --from Play right right right left left
 | Why earlier presses did nothing | the traversal threw on the adopted node (`m_Focused.Set is not a function`); with a valid tree the presses move the focus exactly like the hardware |
 | Verified walk on the game page | `Play -> right: SCSKiller -> right: Configure Controller -> right: Manage -> left: Configure Controller -> left: SCSKiller -> left: Play` |
 | What the dispatcher rejects | a tree with `BIsGamepadInputSuppressed()`, or a button while `m_rgCatchAllGamepadInput` swallows the press |
+| Nothing moves at all? check the traps first | 1) Steam's screensaver: a `Screensaver_uid2` CEF target means every press is swallowed and a desktop capture is black → `tools/wake-steam.ps1` (one real Shift press, the virtual dispatch does not wake it). 2) the window: `tools/focus-bp.ps1`. 3) the surface: `MenuStore.GetOpenSideMenu()` = `0` none, `1` main menu, `2` quick access; `OpenMainMenu()` does nothing while the QAM is open, and the closed surface's nodes stay inactive so `TakeFocus` fails silently (measured 2026-11-22) |
 
 Before claiming anything about the controller, run that walk; a "mouse only" or "not reachable" conclusion
 is no longer acceptable when the presses can be reproduced.
@@ -252,11 +256,15 @@ every entry uses `/`.
 - `docs/qam-shortcut-plugin.md` — case study of the `Ctrl+2` plugin (what failed and why).
 - `docs/workshop.md` — the workshop index (layout, skills, tooling, plugins).
 
-**Tooling**: `tools/` (CDP) — see `tools/README.md`. Plugin-specific helpers live next to their plugin
+**Tooling**: `tools/` (CDP) — see `tools/README.md`. Before any gamepad probe: `tools/wake-steam.ps1`
+(wakes the Steam screensaver, which swallows every press) then `tools/focus-bp.ps1` (brings the
+`Steam Big Picture Mode` window to the foreground). Plugin-specific helpers live next to their plugin
 (`plugins/scskiller/tools/cdp-eval.mjs`, `cdp-reload.mjs`, `cdp-inject.mjs`, `cdp-click.mjs`,
 `cdp-key.mjs`, `cdp-console.mjs`, `cdp-shot.mjs`, `nav-audit.mjs`, `nav-probe.mjs`, `pad-sim.mjs`
 (gamepad simulator — `--from <label> right right left`, `--walk`, see the `decky-gamepad-focus`
-skill)).
+skill), `open-main-menu.js` (close then open the rail: `OpenMainMenu()` alone does nothing while the
+QAM is open), `probe-focus-tree.js` / `probe-active-tree.js` (node tree and per-tree children),
+`probe-rail-element.js` (what the rail's adopted node points at), `open-scsk-panel.js`).
 `tools/fix-mojibake.py` repairs the
 UTF-8 → cp1252 → UTF-8 corruption that a PowerShell text pipeline leaves behind (see rule 9).
 
