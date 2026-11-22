@@ -1,5 +1,5 @@
 import { report } from "./report";
-import { adopt, moveUnder, nodeFor, uiDocument, walkNodes } from "./navAdopt";
+import { adopt, nodeFor, walkNodes } from "./navAdopt";
 
 /**
  * Keep the controls this plugin draws inside Steam's gamepad focus groups.
@@ -29,26 +29,10 @@ function say(message: string): void {
 }
 
 function fixGamePageButton(): void {
-  const doc = uiDocument();
-  if (!doc) return;
-  const button = doc.querySelector('[data-scskiller="overlay"] div[role="button"]') as HTMLElement | null;
-  if (!button) return;
-
-  const controller = doc.querySelector('[aria-label="Configure Controller"]') as HTMLElement | null;
-  const row = controller?.parentElement?.parentElement ?? null;
-  if (!row) {
-    say("game page: icon row not found");
-    return;
-  }
-
-  const rowNode = nodeFor(row);
-  const buttonNode = nodeFor(button);
-  if (!rowNode || !buttonNode) return;
-  if (buttonNode.m_Parent === rowNode) return;
-  if (moveUnder(buttonNode, rowNode)) {
-    moves += 1;
-    say(`game page: button moved into the icon row (${moves} time(s))`);
-  }
+  // Disabled on purpose. Moving the node after registration reorders the icon row and traps the
+  // focus (measured with a controller: Down lands on the SCSKiller button before Play, and no
+  // direction leaves it). The React-side insertion is the only correct fix; until then the button
+  // stays mouse-only instead of breaking the page.
 }
 
 function fixMenuEntry(): void {
