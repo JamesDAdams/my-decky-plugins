@@ -170,8 +170,9 @@ node plugins/scskiller/tools/pad-sim.mjs --from Play right right right left left
 | Fact | Observed value (2026-11-22) |
 | --- | --- |
 | Entry point | `NavigationManager.DispatchVirtualGamepad("vgp_onbuttondown" / "vgp_onbuttonup", { button, source, is_repeat })`, `source: 1` = GAMEPAD |
-| Buttons (`sp.js`) | `DIR_UP = 9`, `DIR_DOWN = 10`, `DIR_LEFT = 11`, `DIR_RIGHT = 12`; A = 0, B = 1 |
-| Placing the focus first | `tree.TakeFocus(node)` works (it needs the tree to be the **active focus tree** and well-formed nodes) |
+| Buttons (`sp.js`) | `INVALID = 0`, `OK = 1` (A), `CANCEL = 2` (B), `SECONDARY = 3`, `DIR_UP = 9`, `DIR_DOWN = 10`, `DIR_LEFT = 11`, `DIR_RIGHT = 12` |
+| Activation | Steam dispatches **`vgp_onok`** on the focused element; a cloned element has no such listener, so the pad's A does nothing while the mouse click works - add `addEventListener("vgp_onok", ...)` |
+| Focus look of a clone | the native class colours the `svg` white with a stronger selector than the button's `color`: on `:focus` the glyph must be forced (`fill: #16191d !important`) or it disappears on the white focused background |
 | Why earlier presses did nothing | the traversal threw on the adopted node (`m_Focused.Set is not a function`); with a valid tree the presses move the focus exactly like the hardware |
 | Verified walk on the game page | `Play -> right: SCSKiller -> right: Configure Controller -> right: Manage -> left: Configure Controller -> left: SCSKiller -> left: Play` |
 | What the dispatcher rejects | a tree with `BIsGamepadInputSuppressed()`, or a button while `m_rgCatchAllGamepadInput` swallows the press |

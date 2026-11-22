@@ -25,11 +25,17 @@ const BUTTON_ATTR = "data-scskiller-button";
 const DOT_ATTR = "data-scskiller-dot";
 
 /**
- * The clone keeps Steam's own class, so box, hover and spacing come from Steam. Only two things are
- * added: the focus look (Steam paints it from React state, which a clone does not have) and the dot.
+ * The clone keeps Steam's own class, so box, hover and spacing come from Steam. What is added: the
+ * focus look (Steam paints it from React state, which a clone does not have) and the dot.
+ *
+ * The glyph has to be forced dark on focus: the native class colours the *svg* white with a stronger
+ * selector than the button's `color`, so a plain `color` change leaves a white glyph on the white
+ * focused background (measured: computed `fill: rgb(255,255,255)` on the svg while the button was
+ * focused).
  */
 const CSS = `[${BUTTON_ATTR}]{position:relative}
-[${BUTTON_ATTR}]:focus{background:#e6e8ea;color:#16191d;outline:none}
+[${BUTTON_ATTR}]:focus{background:#e6e8ea!important;outline:none}
+[${BUTTON_ATTR}]:focus svg,[${BUTTON_ATTR}]:focus svg path{color:#16191d!important;fill:#16191d!important}
 [${BUTTON_ATTR}] svg{pointer-events:none}
 [${DOT_ATTR}]{position:absolute;right:4px;bottom:4px;width:9px;height:9px;border-radius:5px;border:1px solid rgba(0,0,0,0.55);background:#e05252;box-shadow:0 0 5px #e05252}`;
 
@@ -98,6 +104,15 @@ function createButton(doc: Document, row: Element): HTMLElement | null {
     event.stopPropagation();
     openScsk();
   });
+  // the controller does not click: Steam fires `vgp_onok` on the focused element (it is the listener
+  // every native Focusable registers), so a cloned element has to answer it itself
+  for (const type of ["vgp_onok", "vgp_onsecondaryaction"]) {
+    button.addEventListener(type, (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      openScsk();
+    });
+  }
   button.addEventListener("focus", () => report("game page: button took the controller focus"));
   button.addEventListener("blur", () => report("game page: button released the focus"));
   row.insertBefore(button, row.firstChild);

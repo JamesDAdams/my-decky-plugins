@@ -37,6 +37,8 @@ D-pad can be reproduced; guessing cost hours.
 | The copied node kept `fnCanTakeFocus` / `childFocusDisabled` | `GetFocusable() = "none"` | `delete` both, force `focusable: true` |
 | The copied node has **booleans** in `m_Focused` / `m_FocusWithin` | `node.BTakeFocus` throws `this.m_Focused.Set is not a function`; the **whole group** becomes unreachable | `makeFocusState()`: `new templateStore.constructor(false)` |
 | The node list order does not match the DOM | traversal enters the row in the wrong order | `unshift` the node in `m_rgChildren`, then `EnsureChildrenSorted()` |
+| The cloned element does not answer the controller | Steam activates the focused element by dispatching **`vgp_onok`** on it (it is the listener every native `Focusable` registers); a cloned DOM element has none, so A does nothing while the mouse click works | add `button.addEventListener("vgp_onok", open)` (and `vgp_onsecondaryaction`) next to the click handler |
+| The focused glyph vanishes on a white box | the native class colours the **`svg`** white with a stronger selector than the button's `color`, so `:focus{background:white}` gives a white glyph on white (measured: computed `fill: rgb(255,255,255)` while focused) | force it: `[data-x]:focus svg, [data-x]:focus svg path { color:#16191d!important; fill:#16191d!important }` |
 
 `adopt()` in `plugins/scskiller/src/navAdopt.ts` (and the `steamswitch` copy) implements all of this.
 Use it; do not hand-roll a node.
@@ -99,7 +101,8 @@ node tools/pad-sim.mjs --walk right right                 # one line per press
 ```
 
 It calls `NavigationManager.DispatchVirtualGamepad("vgp_onbuttondown"|"vgp_onbuttonup", {button,
-source: 1, is_repeat})` (buttons: `DIR_UP=9`, `DIR_DOWN=10`, `DIR_LEFT=11`, `DIR_RIGHT=12`, A=0, B=1;
+source: 1, is_repeat})` (buttons: `INVALID=0`, `OK=1` = A, `CANCEL=2` = B, `SECONDARY=3`, `DIR_UP=9`,
+`DIR_DOWN=10`, `DIR_LEFT=11`, `DIR_RIGHT=12`;
 `source: 1` = GAMEPAD) and reads `tree.m_lastFocusNode` after each press. To start from a known place,
 `tree.TakeFocus(node)` (it works only when the tree is the active focus tree).
 
@@ -136,6 +139,8 @@ A screenshot is not a proof of reachability; a walk is.
 - [ ] node adopted from a sibling of the same row, `GetFocusable()` ≠ `none`, focus stores are objects
 - [ ] node placed at the DOM index, then `EnsureChildrenSorted()`
 - [ ] keeper restores element and node after a Steam re-render
-- [ ] `:focus` style painted by the plugin
+- [ ] `:focus` style painted by the plugin, with the glyph forced dark (the native class paints the
+      svg white - a plain `color` change leaves a white glyph on the white focused background)
+- [ ] `vgp_onok` listener wired: A must run the action, the mouse click alone is not enough
 - [ ] walk replayed with `pad-sim.mjs` and pasted in the log/commit message
 - [ ] `AGENTS.md` §3c/§3d updated with any new measured fact

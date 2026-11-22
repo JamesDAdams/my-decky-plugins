@@ -13,7 +13,7 @@
 //
 // Targets SharedJSContext (the only window that owns SteamUIStore).
 const args = process.argv.slice(2);
-const BUTTONS = { up: 9, down: 10, left: 11, right: 12, ok: 0, cancel: 1 };
+const BUTTONS = { up: 9, down: 10, left: 11, right: 12, ok: 1, cancel: 2, secondary: 3 };
 const targets = await (await fetch("http://127.0.0.1:8080/json/list")).json();
 const target = targets.find((t) => typeof t.title === "string" && t.title.includes("SharedJSContext"));
 if (!target) {
