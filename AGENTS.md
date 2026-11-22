@@ -368,7 +368,9 @@ gives each plugin its own GitHub release:
 The plugin list is **discovered**, not configured: any folder under `plugins/` holding `plugin.json`
 and `package.json` is built and released, so adding a plugin needs no workflow change. `tools/release.py`
 is the single source of the names (`list`, `matrix`, `package`, `notes`), and it is also what both
-`build.ps1` scripts call, so the local zip and the release asset have the same bytes.
+`build.ps1` scripts call, so the local zip and the release asset have the same bytes. `matrix` prints
+an **object** with an `include` key: `fromJSON` on a bare array fails the matrix expansion and the run
+goes red with only the `plan` job in the job list (measured on the first run of this workflow).
 
 The `publish` job gates the release on the same checks as the local build: `npx tsc --noEmit`,
 `npx rollup -c`, the pure-ASCII check on `dist/index.js` (rule 9) and `python3 -m unittest discover -s

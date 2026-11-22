@@ -200,7 +200,6 @@ def main(argv: list[str]) -> int:
     sub.add_parser("list", help="one line per plugin")
 
     matrix = sub.add_parser("matrix", help="JSON matrix for GitHub Actions")
-    matrix.add_argument("--json", action="store_true", help="print the matrix object instead of a bare list")
 
     pack = sub.add_parser("package", help="build the installable zip")
     pack.add_argument("plugin")
@@ -217,11 +216,13 @@ def main(argv: list[str]) -> int:
         return 0
 
     if args.command == "matrix":
+        # `fromJSON` needs an object with an `include` key; a bare array fails the
+        # job expansion silently (the run goes red without any job).
         include = [
             {"folder": p.folder, "name": p.name, "version": p.version, "tag": p.tag, "asset": p.asset}
             for p in discover()
         ]
-        print(json.dumps({"include": include} if args.json else include))
+        print(json.dumps({"include": include}))
         return 0
 
     if args.command == "package":
