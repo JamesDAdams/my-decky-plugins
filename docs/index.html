@@ -49,6 +49,13 @@
           <span class="nav-desc" data-i18n="steamswitch.navDesc">Steam Big Picture</span>
         </span>
       </button>
+      <button type="button" class="nav-item" data-panel="nvidia-driver" aria-current="false">
+        <span class="nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M11.979 0C5.678 0 .511 4.86.022 11.037l6.432 2.658c.545-.371 1.203-.59 1.912-.59.063 0 .125.004.188.006l2.861-4.142V8.91c0-2.495 2.028-4.524 4.524-4.524 2.494 0 4.524 2.031 4.524 4.527s-2.03 4.525-4.524 4.525h-.105l-4.076 2.911c0 .052.004.105.004.159 0 1.875-1.515 3.396-3.39 3.396-1.635 0-3.016-1.173-3.331-2.727L.436 15.27C1.862 20.307 6.486 24 11.979 24c6.627 0 11.999-5.373 11.999-12S18.605 0 11.979 0zM7.54 18.21l-1.473-.61c.262.543.714.999 1.314 1.25 1.297.539 2.793-.076 3.332-1.375.263-.63.264-1.319.005-1.949s-.75-1.121-1.377-1.383c-.624-.26-1.29-.249-1.878-.03l1.523.63c.956.4 1.409 1.5 1.009 2.455-.397.957-1.497 1.41-2.454 1.012H7.54zm11.415-9.303c0-1.662-1.353-3.015-3.015-3.015-1.665 0-3.015 1.353-3.015 3.015 0 1.665 1.35 3.015 3.015 3.015 1.663 0 3.015-1.35 3.015-3.015zm-5.273-.005c0-1.252 1.013-2.266 2.265-2.266 1.249 0 2.266 1.014 2.266 2.266 0 1.251-1.017 2.265-2.266 2.265-1.253 0-2.265-1.014-2.265-2.265z"/></svg></span>
+        <span class="nav-text">
+          <span class="nav-name" data-i18n="nvidia.name">NVIDIA Driver</span>
+          <span class="nav-desc" data-i18n="nvidia.navDesc">Steam Big Picture</span>
+        </span>
+      </button>
     </nav>
 
     <div class="sidebar-foot">
@@ -200,6 +207,62 @@
           <span data-i18n="steamswitch.meta">Windows; two accounts remembered on the PC</span>
           <span class="sep" aria-hidden="true">·</span>
           <span class="version" data-version-src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/plugins/steamswitch/package.json">v0.1.4</span>
+        </p>
+      </div>
+    </article>
+
+    <article class="panel" id="panel-nvidia-driver" aria-labelledby="nvidia-title" hidden>
+
+      <div class="shots carousel" data-carousel aria-roledescription="carousel" data-i18n-aria="nvidia.name">
+        <div class="carousel-stage">
+          <figure class="carousel-slide is-active">
+            <img class="shot wide" src="assets/nvidia-driver-topbar.png" width="1050" height="120" loading="lazy"
+                 data-i18n-alt="nvidia.alt1"
+                 alt="The green NVIDIA driver badge in Steam Big Picture's top bar, left of the friends icon">
+            <figcaption data-i18n="nvidia.c1">The badge sits in the top bar, next to Steam's own icons</figcaption>
+          </figure>
+          <figure class="carousel-slide" hidden>
+            <img class="shot portrait" src="assets/nvidia-driver-panel.png" width="1250" height="1500" loading="lazy"
+                 data-i18n-alt="nvidia.alt2"
+                 alt="The Decky panel: installed 621.01, 621.24 available, and the Install 621.24 button">
+            <figcaption data-i18n="nvidia.c2">The panel: installed version, recommendation, one install button</figcaption>
+          </figure>
+        </div>
+        <div class="carousel-bar">
+          <button type="button" class="carousel-btn" data-carousel-prev data-i18n-aria="carousel.prev" aria-label="Previous image">&#8249;</button>
+          <div class="carousel-dots" role="tablist" data-i18n-aria="carousel.images" aria-label="Images"></div>
+          <button type="button" class="carousel-btn" data-carousel-next data-i18n-aria="carousel.next" aria-label="Next image">&#8250;</button>
+        </div>
+      </div>
+
+      <div class="panel-body">
+        <div class="panel-head">
+          <h2 id="nvidia-title">NVIDIA Driver</h2>
+          <span class="tag">Big Picture</span>
+        </div>
+
+        <p class="lead" data-i18n="nvidia.desc">Shows a badge in Big Picture's top bar when the NVIDIA App has a newer driver for this PC, and opens a Decky panel with one button that downloads NVIDIA's package and installs it.</p>
+
+        <ul class="feats">
+          <li data-i18n="nvidia.f1">Reads the version nvidia-smi reports and asks the NVIDIA App's own local server for the recommendation, so the badge is tied to the version actually installed, not to a web page.</li>
+          <li data-i18n="nvidia.f2">Install downloads exactly the package the app lists for that version and starts it with the installer's silent switches; Windows shows its own permission prompt, the plugin never asks for a password.</li>
+          <li data-i18n="nvidia.f3">The download and the install run in a detached helper: the panel keeps refreshing while it works, and the progress survives a Steam restart.</li>
+        </ul>
+
+        <div class="actions">
+          <a class="btn"
+             href="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/NvidiaDriver-decky-0.1.0.zip"
+             data-i18n="download">Download</a>
+          <a class="btn ghost"
+             href="https://github.com/JamesDAdams/my-decky-plugins/tree/main/plugins/nvidia-driver"
+             data-i18n="details">Details</a>
+        </div>
+
+        <p class="meta">
+          <span class="dot" aria-hidden="true"></span>
+          <span data-i18n="nvidia.meta">Windows; NVIDIA App installed</span>
+          <span class="sep" aria-hidden="true">&#183;</span>
+          <span class="version" data-version-src="https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/plugins/nvidia-driver/package.json">v0.1.0</span>
         </p>
       </div>
     </article>

@@ -17,12 +17,15 @@ Website: **https://jamesdadams.github.io/my-decky-plugins/**
 | [**SCSKiller**](plugins/scskiller/) | Bridges the [SCSKiller](https://github.com/BlueHeisenberg/SCSKiller) Windows app into Steam: a 48×48 shader-compile button exactly 8 px left of the controller icon on the game page, a stats window fed by what SCSKiller reports (shaders, pipelines, cache, estimate, last compile), and a Quick Access Menu page listing the queue with live progress. The plugin ships no binary; it calls the `scskiller.exe` already installed.<br><br><img src="plugins/scskiller/screenshots/game-page-compiling.png" width="260" alt="Steam game page with the SCSKiller button left of the controller icon"> | [<img src="assets/download-en.svg" width="96" height="28" alt="Download SCSKiller">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SCSKiller-decky-0.9.15.zip) |
 | [**SteamSwitch**](plugins/steamswitch/) | When a game belongs to **another Steam account** remembered on the PC, Steam shows **Borrow**. This plugin rewrites that native button into **Switch account & Play**: a detached helper quits Steam, marks the owning account as the auto-login one (`loginusers.vdf` + registry), restarts in Big Picture, waits for that account and launches the game. A second button on the account settings page switches account without the sign-out screen. No account is hard-coded.<br><br><img src="plugins/steamswitch/screenshots/game-page-switch.png" width="260" alt="Borrow button replaced by Switch account & Play on a Steam game page"> | [<img src="assets/download-en.svg" width="96" height="28" alt="Download SteamSwitch">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/SteamSwitch-decky-0.1.4.zip) |
 
+| [**NVIDIA Driver**](plugins/nvidia-driver/) | A green badge in Big Picture's top bar when the NVIDIA App reports a newer driver than the one `nvidia-smi` shows; clicking it opens the Decky panel with the installed and recommended versions and one button that downloads NVIDIA's package for that version and installs it (detached helper; Windows shows its own permission prompt).<br><br><img src="plugins/nvidia-driver/screenshots/topbar.png" width="260" alt="NVIDIA driver badge in Steam Big Picture's top bar"> | [<img src="assets/download-en.svg" width="96" height="28" alt="Download NVIDIA Driver">](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/NvidiaDriver-decky-0.1.0.zip) |
+
 ## Requirements
 
 - Windows with the Steam client started in **Big Picture** mode.
 - [Decky Loader](https://decky.xyz/) installed.
 - Per plugin: `Ctrl+2` shortcuts and keyboard/mouse for DeckyShortcut, the SCSKiller app installed
-  for SCSKiller, at least two remembered Steam accounts for SteamSwitch. Each README lists the exact
+  for SCSKiller, the NVIDIA App installed for NVIDIA Driver, at least two remembered Steam accounts
+  for SteamSwitch. Each README lists the exact
   limits and the failure modes.
 
 Installing a plugin: download the zip above, then Decky menu → **Install from zip file** → select the
@@ -40,6 +43,7 @@ runs the backend tests, packs the zip and publishes the release from
 plugins/
   decky-qam-shortcut/    bottom-bar legend + QAM opening (TypeScript + Python)
   scskiller/             game-page button + SCSKiller bridge (TypeScript + Python + PowerShell)
+  nvidia-driver/         top-bar driver badge + NVIDIA package installer (TypeScript + Python + PowerShell)
   steamswitch/           native button rewrite + account switch helper (TypeScript + Python)
 docs/                    the static website published on GitHub Pages
   index.html, styles.css, app.js
