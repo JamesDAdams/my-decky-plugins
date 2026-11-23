@@ -1,6 +1,6 @@
 {
   "name": "nvidia-driver-decky",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Decky Loader plugin: NVIDIA driver update badge for Steam Big Picture",
   "type": "module",
   "scripts": {
@@ -22,7 +22,10 @@
     "tslib": "^2.7.0"
   },
   "decky": {
-    "ship": ["driverlogic.py", "tools/install.ps1"]
+    "ship": [
+      "driverlogic.py",
+      "tools/install.ps1"
+    ]
   },
   "pnpm": {
     "peerDependencyRules": {
