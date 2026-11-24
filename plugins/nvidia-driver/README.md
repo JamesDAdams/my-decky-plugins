@@ -9,10 +9,10 @@ newer driver for this PC, and a Decky panel that installs it.
 
 ## Install
 
-[![Download](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg)](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/NvidiaDriver-decky-0.1.3.zip)
+[![Download](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/assets/download-en.svg)](https://raw.githubusercontent.com/JamesDAdams/my-decky-plugins/main/releases/NvidiaDriver-decky-0.1.4.zip)
 
 1. Download the zip above.
-2. Decky menu (the plug icon) -> **Install from zip file** -> `NvidiaDriver-decky-0.1.3.zip`.
+2. Decky menu (the plug icon) -> **Install from zip file** -> `NvidiaDriver-decky-0.1.4.zip`.
 3. Restart Steam: the plugin and its Python backend start with the client.
 
 Manual install: unzip so that `homebrew/plugins/NvidiaDriver/` holds `main.py`, `plugin.json`,
